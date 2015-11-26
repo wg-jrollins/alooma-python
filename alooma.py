@@ -158,16 +158,6 @@ class Alooma(object):
                             **self.requests_params)
         return res
 
-    def set_classifier_by_field(self, field_name):
-        url = self.rest_url + "type-classifier"
-        res = requests.put(url, json={
-            "BY_FIELD": {
-                "fieldName": field_name
-            }
-        }, cookies=self.cookie)
-        if not response_is_ok(res):
-            print(res.reason)
-
     def discard_event_type(self, event_type_name):
         event_type_json = {
             "name": event_type_name,
@@ -406,7 +396,6 @@ class Alooma(object):
         self.remove_all_inputs()
         self.delete_all_event_types()
         self.set_mapping_mode(flexible=False)
-        self.set_classifier_by_input()
         self.set_settings_email_notifications(
             DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS)
         self.delete_s3_retention()
@@ -447,15 +436,6 @@ class Alooma(object):
             print("Could not get event type due to - {exception}".format(
                 exception=res.reason))
         return json.loads(res.content.decode())
-
-    def set_classifier_by_input(self):
-        classifier_json = {"BY_SOURCE": {}}
-        url = self.rest_url + "/type-classifier"
-        res = requests.put(url, json=classifier_json,
-                           **self.requests_params)
-        if res.status_code not in [204, 200]:
-            print("Could not set classify by input due to - {exception}".format(
-                exception=res.reason))
 
     def set_settings_email_notifications(self, email_settings_json):
         url = self.rest_url + "/settings/email-notifications"
