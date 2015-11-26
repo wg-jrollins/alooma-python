@@ -5,11 +5,7 @@ from contextlib import contextmanager
 import os
 import datetime
 
-USERNAME = os.environ['ALOOMA_USER']
-PASSWORD = os.environ['ALOOMA_PASSWORD']
-
-def _obtain_cookie(hostname, port="8443", login_path="rest/login",
-                   username=USERNAME, password=PASSWORD):
+def _obtain_cookie(hostname, username, password, port="8443", login_path="rest/login"):
     url = "https://{hostname}:{port}/{path}".format(
         hostname=hostname, port=port, path=login_path)
     login_data = {"email": username, "password": password}
@@ -19,12 +15,11 @@ def _obtain_cookie(hostname, port="8443", login_path="rest/login",
     return None
 
 
-def obtain_cookie(hostname, port="8443", login_path="rest/login",
-                  username=USERNAME, password=PASSWORD):
+def obtain_cookie(hostname, username, password, port="8443", login_path="rest/login"):
     print ("Attempting to obtain cookie from {}...".format(hostname))
     cookie = None
     try:
-        cookie = _obtain_cookie(hostname, port, login_path, username, password)
+        cookie = _obtain_cookie(hostname, username, password, port, login_path)
         if cookie:
             print ("OK!")
     except SSLError as e:

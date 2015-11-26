@@ -26,14 +26,13 @@ class FailedToCreateInputException(Exception):
 
 
 class Alooma(object):
-    def __init__(self, server, port=8443, server_prefix=''):
+    def __init__(self, hostname, username, password, port=8443, server_prefix=''):
 
-        self.server_name = server
-        self.rest_url = 'https://%s:%d%s/rest/' % (server,
+        self.hostname = hostname
+        self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
                                                    port,
                                                    server_prefix)
-
-        self.cookie = obtain_cookie(server, port,
+        self.cookie = obtain_cookie(hostname, username, password, port,
                                     login_path=server_prefix + 'rest/login')
         if not self.cookie:
             raise Exception('Failed to obtain cookie')
@@ -45,13 +44,13 @@ class Alooma(object):
     def get_config(self):
         url_get = self.rest_url + 'config/export'
         response = requests.get(url=url_get, **self.requests_params)
-        config_export = json.loads(response.content)
+        config_export = json.loads(response.content.decode())
         return config_export
 
     def get_structure(self):
         url_get = self.rest_url + 'plumbing/?resolution=1min'
         response = requests.get(url=url_get, **self.requests_params)
-        structure = json.loads(response.content)
+        structure = json.loads(response.content.decode())
         return structure
 
     def get_mapping_mode(self):
@@ -133,7 +132,7 @@ class Alooma(object):
                 return node['id']
 
         raise Exception('Could not locate transform id for %s' %
-                        self.server_name)
+                        hostname)
 
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
@@ -303,7 +302,7 @@ class Alooma(object):
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
         res = requests.get(url, **self.requests_params)
-        return json.loads(res.content)["code"]
+        return json.loads(res.content.decode())["code"]
 
     def set_transform(self, transform):
         data = {'language': 'PYTHON', 'code': transform,
@@ -317,7 +316,7 @@ class Alooma(object):
                               '&from=-%dmin&resolution=%dmin' % (
                                   minutes, minutes)
         response = json.loads(
-            requests.get(url, **self.requests_params).content)
+            requests.get(url, **self.requests_params).content.decode())
         incoming = non_empty_datapoint_values(response)
         if incoming:
             return max(incoming)
@@ -333,14 +332,14 @@ class Alooma(object):
         url = self.rest_url + 'metrics?metrics=INCOMING_EVENTS&from=-' \
                               '%dmin&resolution=%dmin' % (minutes, minutes)
         response = json.loads(
-            requests.get(url, **self.requests_params).content)
+            requests.get(url, **self.requests_params).content.decode())
         return sum(non_empty_datapoint_values(response))
 
     def get_average_event_size(self, minutes):
         url = self.rest_url + 'metrics?metrics=EVENT_SIZE_AVG&from=-' \
                               '%dmin&resolution=%dmin' % (minutes, minutes)
         response = json.loads(
-            requests.get(url, **self.requests_params).content)
+            requests.get(url, **self.requests_params).content.decode())
 
         values = non_empty_datapoint_values(response)
         if not values:
@@ -353,7 +352,7 @@ class Alooma(object):
                               '-%dmin&resolution=%dmin' % (minutes, minutes)
         try:
             response = json.loads(
-                requests.get(url, **self.requests_params).content)
+                requests.get(url, **self.requests_params).content.decode())
             latencies = non_empty_datapoint_values(response)
             if latencies:
                 return max(latencies) / 1000
@@ -375,13 +374,13 @@ class Alooma(object):
         if res.status_code not in [200, 204]:
             print("Failed to get notifications")
         else:
-            res = json.loads(res.content)
+            res = json.loads(res.content.decode())
             return res
 
     def get_plumbing(self):
         url = self.rest_url + "/plumbing?resolution=30sec"
         res = requests.get(url, cookies=self.cookie)
-        return json.loads(res.content)
+        return json.loads(res.content.decode())
 
     def get_redshift_config(self):
         plumbing = self.get_plumbing()
@@ -439,15 +438,15 @@ class Alooma(object):
         if res.status_code not in [204, 200]:
             print("Could not get event types due to - {exception}".format(
                 exception=res.reason))
-        return json.loads(res.content)
+        return json.loads(res.content.decode())
 
     def get_event_type(self, event_type_name):
-        url = self.rest_url + '/event-types/' + urllib.quote_plus(event_type_name)
+        url = self.rest_url + '/event-types/' + urllib.parse.quote_plus(event_type_name)
         res = requests.get(url=url, **self.requests_params)
         if res.status_code not in [204, 200]:
             print("Could not get event type due to - {exception}".format(
                 exception=res.reason))
-        return json.loads(res.content)
+        return json.loads(res.content.decode())
 
     def set_classifier_by_input(self):
         classifier_json = {"BY_SOURCE": {}}
