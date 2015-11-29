@@ -2,10 +2,7 @@ import json
 import time
 import requests
 import urllib
-from utils import obtain_cookie
 import datetime
-import paramiko
-
 
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
 DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
@@ -32,8 +29,7 @@ class Alooma(object):
         self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
                                                    port,
                                                    server_prefix)
-        self.cookie = obtain_cookie(hostname, username, password, port,
-                                    login_path=server_prefix + 'rest/login')
+        self.cookie = self.__login(username, password)
         if not self.cookie:
             raise Exception('Failed to obtain cookie')
 
@@ -41,6 +37,16 @@ class Alooma(object):
                                 'cookies': self.cookie,
                                 'verify': False}
 
+    def __login(self, username, password):
+        print("Attempting to login and obtain a session cookie from {}... %s", format(self.hostname))
+        url = self.rest_url + 'login'
+        login_data = {"email": username, "password": password}
+        response = requests.post(url, json=login_data)
+        if response.status_code == 200:
+            return response.cookies
+        else:
+            raise FailedToLoginException('Failed to login to {} with username: {}'.format(
+            self.hostname, username))
     def get_config(self):
         url_get = self.rest_url + 'config/export'
         response = requests.get(url=url_get, **self.requests_params)
@@ -132,7 +138,7 @@ class Alooma(object):
                 return node['id']
 
         raise Exception('Could not locate transform id for %s' %
-                        hostname)
+                        self.hostname)
 
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
