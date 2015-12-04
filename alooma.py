@@ -84,6 +84,29 @@ class Alooma(object):
         }
         return self.create_input(input_post_data=post_data)
 
+    def create_postgresql_table_reader_input(self, host, port, db, schema, user,
+                                             password, table, ts_col, from_date,
+                                             batch_size, name, transform_id):
+        post_data = {
+            "source": None,
+            "target": str(transform_id),
+            "name": name,
+            "type": "PSQL_TABLE",
+            "configuration": {
+                "hostname": host,
+                "port": port,
+                "dbname": db,
+                "schema": schema,
+                "username": user,
+                "password": password,
+                "table": table,
+                "ts_col": ts_col,
+                "batch_size": batch_size,
+                "date": from_date
+            }
+        }
+        return self.create_input(input_post_data = post_data)
+
     def create_mixpanel_input(self, mixpanel_api_key, mixpanel_api_secret,
                               from_date, name, transform_id):
         post_data = {
