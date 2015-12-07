@@ -2,7 +2,6 @@ import json
 import time
 import requests
 import urllib
-import datetime
 
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
 DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
@@ -18,12 +17,14 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 
+
 class FailedToCreateInputException(Exception):
     pass
 
 
 class Alooma(object):
-    def __init__(self, hostname, username, password, port=8443, server_prefix=''):
+    def __init__(self, hostname, username, password, port=8443,
+                 server_prefix=''):
 
         self.hostname = hostname
         self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
@@ -45,8 +46,9 @@ class Alooma(object):
         if response.status_code == 200:
             return response.cookies
         else:
-            raise FailedToLoginException('Failed to login to {} with username: {}'.format(
-            self.hostname, username))
+            raise Exception('Failed to login to {} with username: '
+                            '{}'.format(self.hostname, username))
+
     def get_config(self):
         url_get = self.rest_url + 'config/export'
         response = requests.get(url=url_get, **self.requests_params)
@@ -221,7 +223,8 @@ class Alooma(object):
         if field:
             mapping["fields"].remove(field)
 
-    def map_field(self, schema, field_path, column_name, field_type, non_null,
+    @staticmethod
+    def map_field(schema, field_path, column_name, field_type, non_null,
                   **type_attributes):
         """
         :param  schema: this is the mapping json
@@ -235,9 +238,9 @@ class Alooma(object):
         :return: new mapping dict with new argument
         """
 
-        field = self.find_field_name(schema, field_path, True)
-        self.set_mapping_for_field(field, column_name, field_type,
-                                   non_null, **type_attributes)
+        field = Alooma.find_field_name(schema, field_path, True)
+        Alooma.set_mapping_for_field(field, column_name, field_type,
+                                     non_null, **type_attributes)
 
     @staticmethod
     def set_mapping_for_field(field, column_name,
@@ -260,7 +263,8 @@ class Alooma(object):
         parent_field["fields"].append(field)
         return field
 
-    def find_field_name(self, schema, field_path, add_if_missing=False):
+    @staticmethod
+    def find_field_name(schema, field_path, add_if_missing=False):
         """
         :param schema:  this is the dict that this method run over ot
                         recursively
@@ -282,18 +286,17 @@ class Alooma(object):
         if field:
             if not remaining_path:
                 return field
-            return self.find_field_name(field, remaining_path[0])
+            return Alooma.find_field_name(field, remaining_path[0])
         elif add_if_missing:
             parent_field = schema
             for field in fields_list:
-                parent_field = self.add_field(parent_field, field)
+                parent_field = Alooma.add_field(parent_field, field)
             return parent_field
         else:
-
             # print this if the field is not found,
             # not standing with the case ->
             # field["fieldName"] == field_to_find
-            print("Could not find field path!!!!")
+            print("Could not find field path")
 
     def set_input_sleep_time(self, id, sleep_time):
         url = self.rest_url + 'inputSleepTime/%s' % id
@@ -445,7 +448,8 @@ class Alooma(object):
         return json.loads(res.content.decode())
 
     def get_event_type(self, event_type_name):
-        url = self.rest_url + '/event-types/' + urllib.parse.quote_plus(event_type_name)
+        url = self.rest_url + '/event-types/' + urllib.parse.quote_plus(
+            event_type_name)
         res = requests.get(url=url, **self.requests_params)
         if res.status_code not in [204, 200]:
             print("Could not get event type due to - {exception}".format(
