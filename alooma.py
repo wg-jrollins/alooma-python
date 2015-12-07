@@ -38,7 +38,7 @@ class Alooma(object):
                                 'verify': False}
 
     def __login(self, username, password):
-        print("Attempting to login and obtain a session cookie from {}... %s", format(self.hostname))
+        print("Attempting to login and obtain a session cookie from %s..." % format(self.hostname))
         url = self.rest_url + 'login'
         login_data = {"email": username, "password": password}
         response = requests.post(url, json=login_data)
@@ -63,6 +63,11 @@ class Alooma(object):
         url = self.rest_url + 'mapping-mode'
         res = requests.get(url, **self.requests_params)
         return res.content
+
+    def get_mapping(self, event_type_name):
+        event_type = self.get_event_type('test_mixpanel')
+        mapping = remove_stats(event_type)
+        return mapping
 
     def create_s3_input(self, name, key, secret, bucket, prefix,
                         load_files, transform_id):
@@ -358,6 +363,8 @@ class Alooma(object):
             print ("Failed to get max latency, returning 0. Reason: %s", e)
             return 0
 
+    #TODO def create_table
+
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = requests.get(url, cookies=self.cookie)
@@ -377,6 +384,8 @@ class Alooma(object):
         url = self.rest_url + "/plumbing?resolution=30sec"
         res = requests.get(url, cookies=self.cookie)
         return json.loads(res.content.decode())
+
+    #TODO set_redshift_config
 
     def get_redshift_config(self):
         plumbing = self.get_plumbing()
@@ -517,3 +526,12 @@ def non_empty_datapoint_values(data):
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
     return []
+
+def remove_stats(mapping):
+    if mapping['stats']:
+        del mapping['stats']
+
+    if mapping['fields']:
+        for index, field in enumerate(mapping['fields']):
+            mapping['fields'][index] = remove_stats(field)
+    return mapping
