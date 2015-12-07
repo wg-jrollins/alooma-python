@@ -448,7 +448,7 @@ class Alooma(object):
         return json.loads(res.content.decode())
 
     def get_event_type(self, event_type_name):
-        url = self.rest_url + '/event-types/' + urllib.parse.quote_plus(
+        url = self.rest_url + '/event-types/' + urllib.quote_plus(
             event_type_name)
         res = requests.get(url=url, **self.requests_params)
         if res.status_code not in [204, 200]:
