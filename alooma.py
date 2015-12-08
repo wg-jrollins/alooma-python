@@ -366,8 +366,25 @@ class Alooma(object):
             print ("Failed to get max latency, returning 0. Reason: %s", e)
             return 0
 
-    #TODO def create_table
 
+    def create_table(self, tableName, columns):
+        """
+        columns example:
+        columns = [
+        {'columnName':'price', 'distKey': False, 'primaryKey': False, 'sortKeyIndex': -1, 'columnType':{'type':'FLOAT', 'nonNull': False}},
+        {'columnName':'event', 'distKey': True, 'primaryKey': False, 'sortKeyIndex': 0, 'columnType':{'type':'VARCHAR', 'length':256, 'nonNull': False}}
+        ]
+        """
+        url = self.rest_url + 'tables/' + tableName
+
+        res = requests.post(url, json=columns, **self.requests_params)
+
+        if res.status_code not in [204, 200]:
+            print("Could not create table due to - {exception}".format(exception=res.reason))
+
+        return json.loads(res.content.decode())
+
+    #TODO standardize the responses (handling of error code etc)
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = requests.get(url, cookies=self.cookie)
