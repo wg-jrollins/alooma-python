@@ -66,8 +66,8 @@ class Alooma(object):
         res = requests.get(url, **self.requests_params)
         return res.content
 
-    def get_mapping(self, event_type_name):
-        event_type = self.get_event_type('test_mixpanel')
+    def get_mapping(self, event_type):
+        event_type = self.get_event_type(event_type)
         mapping = remove_stats(event_type)
         return mapping
 
@@ -159,9 +159,9 @@ class Alooma(object):
         transform = DEFAULT_TRANSFORM_CODE
         self.set_transform(transform=transform)
 
-    def set_mapping(self, mapping, event_type_name):
-        url = self.rest_url + 'event-types/{event_type_name}/mapping'.format(
-            event_type_name=event_type_name)
+    def set_mapping(self, mapping, event_type):
+        url = self.rest_url + 'event-types/{event_type}/mapping'.format(
+            event_type=event_type)
         res = requests.post(url, json=mapping, **self.requests_params)
         return res
 
@@ -171,16 +171,16 @@ class Alooma(object):
                             **self.requests_params)
         return res
 
-    def discard_event_type(self, event_type_name):
+    def discard_event_type(self, event_type):
         event_type_json = {
-            "name": event_type_name,
+            "name": event_type,
             "mapping": {
                 "isDiscarded": True,
                 "tableName": ""
             },
             "fields": [], "mappingMode": "STRICT"
         }
-        self.set_mapping(event_type_json, event_type_name)
+        self.set_mapping(event_type_json, event_type)
 
     def discard_field(self, mapping, field_path):
         """
@@ -388,13 +388,43 @@ class Alooma(object):
         res = requests.get(url, cookies=self.cookie)
         return json.loads(res.content.decode())
 
-    #TODO set_redshift_config
-
-    def get_redshift_config(self):
+    def get_redshift_node(self):
         plumbing = self.get_plumbing()
         for node in plumbing['nodes']:
             if node['name'] == 'Redshift':
-                return node['configuration']
+                return node
+        return None
+
+    def set_redshift_config(self, hostname, port, schema_name, database_name, username, password, skip_validation=False):
+        redshift_node = self.get_redshift_node()
+        print(redshift_node)
+        payload = {
+            'configuration' : {
+                'hostname' : hostname,
+                'port' : port,
+                'schemaName' : schema_name,
+                'databaseName': database_name,
+                'username' : username,
+                'password' : password,
+                'skipValidation' : skip_validation
+                },
+            'category' : 'OUTPUT',
+            'id' : redshift_node['id'],
+            'name' : 'Redshift',
+            'type' : 'REDSHIFT',
+            'deleted' : False
+        }
+        url = self.rest_url + '/plumbing/nodes/'+redshift_node['id']
+        res = requests.put(url=url, json=payload, **self.requests_params)
+        if res.status_code not in [204, 200]:
+            print("Could not configure Redshift due to - {exception}".format(
+                exception=res.reason))
+        return json.loads(res.content.decode())
+
+    def get_redshift_config(self):
+        redshift_node = self.get_redshift_node()
+        if redshift_node:
+            return redshift_node['configuration']
         return None
 
     @staticmethod
@@ -431,8 +461,13 @@ class Alooma(object):
             self.delete_event_type(event_type["name"])
 
     def delete_event_type(self, event_type):
+        if urllib.parse:
+            event_type = urllib.parse.quote_plus(event_type)
+        else:
+            event_type = urllib.quote_plus(event_type)
+
         url = self.rest_url + '/event-types/{event_type}'\
-            .format(event_type=urllib.quote_plus(event_type))
+            .format(event_type=event_type)
         res = requests.delete(url,  **self.requests_params)
         if res.status_code not in [204, 200]:
             raise "Could not delete event type -{event_type} due to - " \
@@ -447,9 +482,14 @@ class Alooma(object):
                 exception=res.reason))
         return json.loads(res.content.decode())
 
-    def get_event_type(self, event_type_name):
+    def get_event_type(self, event_type):
+        if urllib.parse:
+            event_type = urllib.parse.quote_plus(event_type)
+        else:
+            event_type = urllib.quote_plus(event_type)
+
         url = self.rest_url + '/event-types/' + urllib.quote_plus(
-            event_type_name)
+            event_type)
         res = requests.get(url=url, **self.requests_params)
         if res.status_code not in [204, 200]:
             print("Could not get event type due to - {exception}".format(
