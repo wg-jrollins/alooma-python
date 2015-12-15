@@ -575,6 +575,31 @@ class Alooma(object):
             if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
                 return node["stats"]["availbleForRestream"]
 
+    def get_restream_input(self):
+        plumbing = self.get_plumbing()
+        for node in plumbing["nodes"]:
+            if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
+                return node
+
+    def wait_for_plumbing_to_finish(self, input_name=None, sleep_time=0.25,
+                                    wait_time=120):
+        def is_there_throughput():
+            if input_name:
+                throughput = [node['name']
+                              for node in self.get_plumbing()["nodes"]
+                              if input_name == node["name"] and
+                              node['stats']['throughput'] > 0]
+            else:
+                throughput = [node['name']
+                              for node in self.get_plumbing()["nodes"]
+                              if node['stats']['throughput'] > 0]
+            return True if throughput else False
+
+        counter = 0
+        while is_there_throughput() and counter < (wait_time / sleep_time):
+            time.sleep(sleep_time)
+            counter += 1
+
 
 def response_is_ok(response):
     return 200 <= response.status_code < 300
