@@ -63,3 +63,5 @@ mapping_mode = alooma.get_mapping_mode()
 * `clean_restream_queue()`
 * `start_restream()`
 * `get_restream_queue_size()`
+* `get_restream_input()`
+* `wait_for_plumbing_to_finish()`
