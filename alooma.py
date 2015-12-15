@@ -2,8 +2,6 @@ import json
 import time
 import requests
 import urllib
-import datetime
-import paramiko
 
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
 DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
