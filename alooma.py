@@ -18,10 +18,6 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 }
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
-DEFAULT_KEY_PATH = "/home/ubuntu/.ssh/id_rsa"
-MILLISECONDS_DIFF = 40000
-ALOOMA_LOG_PATH = "/var/log/docker-instances/supervisor/alooma/alooma.log"
-GREP_ERR_WARN = '" ERROR\| WARN"'
 
 
 class FailedToCreateInputException(Exception):
@@ -36,6 +32,8 @@ class Alooma(object):
         self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
                                                    port,
                                                    server_prefix)
+        self.segment_url = 'http://%s%s/segment' % (hostname,
+                                                    server_prefix)
         self.cookie = self.__login(username, password)
         if not self.cookie:
             raise Exception('Failed to obtain cookie')
@@ -178,6 +176,16 @@ class Alooma(object):
                             **self.requests_params)
         return res
 
+    def set_classifier_by_field(self, field_name):
+        url = self.rest_url + "type-classifier"
+        res = requests.put(url, json={
+            "BY_FIELD": {
+                "fieldName": field_name
+            }
+        }, cookies=self.cookie)
+        if not response_is_ok(res):
+            print(res.reason)
+
     def discard_event_type(self, event_type):
         event_type_json = {
             "name": event_type,
@@ -230,8 +238,7 @@ class Alooma(object):
         if field:
             mapping["fields"].remove(field)
 
-    @staticmethod
-    def map_field(schema, field_path, column_name, field_type, non_null,
+    def map_field(self, schema, field_path, column_name, field_type, non_null,
                   **type_attributes):
         """
         :param  schema: this is the mapping json
@@ -246,9 +253,9 @@ class Alooma(object):
         :return: new mapping dict with new argument
         """
 
-        field = Alooma.find_field_name(schema, field_path, True)
-        Alooma.set_mapping_for_field(field, column_name, field_type,
-                                     non_null, **type_attributes)
+        field = self.find_field_name(schema, field_path, True)
+        self.set_mapping_for_field(field, column_name, field_type,
+                                   non_null, **type_attributes)
 
     @staticmethod
     def set_mapping_for_field(field, column_name,
@@ -271,8 +278,7 @@ class Alooma(object):
         parent_field["fields"].append(field)
         return field
 
-    @staticmethod
-    def find_field_name(schema, field_path, add_if_missing=False):
+    def find_field_name(self, schema, field_path, add_if_missing=False):
         """
         :param schema:  this is the dict that this method run over ot
                         recursively
@@ -294,11 +300,11 @@ class Alooma(object):
         if field:
             if not remaining_path:
                 return field
-            return Alooma.find_field_name(field, remaining_path[0])
+            return self.find_field_name(field, remaining_path[0])
         elif add_if_missing:
             parent_field = schema
             for field in fields_list:
-                parent_field = Alooma.add_field(parent_field, field)
+                parent_field = self.add_field(parent_field, field)
             return parent_field
         else:
             # print this if the field is not found,
@@ -334,6 +340,19 @@ class Alooma(object):
             return max(incoming)
         else:
             return 0
+
+    def get_outputs_metrics(self, minutes):
+        """
+        Returns a 4-tuple containing the number of events unmapped, discarded,
+        errored and loaded
+        """
+        url = self.rest_url + 'metrics?metrics=UNMAPPED_EVENTS,IGNORED_EVENTS,'\
+                              'ERROR_EVENTS,LOADED_EVENTS_RATE' \
+                              '&from=-%dmin&resolution=%dmin' % (
+                                  minutes, minutes)
+        response = json.loads(
+            requests.get(url, **self.requests_params).content)
+        return tuple([sum(non_empty_datapoint_values([r])) for r in response])
 
     def get_throughput_by_name(self, name):
         structure = self.get_structure()
@@ -409,6 +428,25 @@ class Alooma(object):
         res = requests.get(url, cookies=self.cookie)
         return res
 
+    def create_table_one_column(self, table_name, column_name, column_type,
+                                non_null, primary_key, dist_key, sort_key,
+                                **type_attrs):
+        table_json = [{
+            'columnName': column_name,
+            'columnType': {
+                'type': column_type,
+                'nonNull': str(non_null).lower(),
+            },
+            'primaryKey': str(primary_key).lower(),
+            'distKey': str(dist_key).lower(),
+            'sortKeyIndex': 0 if sort_key else -1,
+        }]
+        for k, v in type_attrs.items():
+            table_json[0]['columnType'][k] = v
+        url = self.rest_url + 'tables/' + table_name
+        res = requests.post(url, json=table_json, cookies=self.cookie)
+        return res
+
     def get_notifications(self, epoch_time):
         url = self.rest_url + "notifications?from={epoch_time}". \
             format(epoch_time=epoch_time)
@@ -419,40 +457,13 @@ class Alooma(object):
             res = json.loads(res.content.decode())
             return res
 
-    def get_errors_since(self, before_test_timestamp, notifications_str="",
-                         key_path=DEFAULT_KEY_PATH):
-        """
-        :param before_test_timestamp: datetime.now() before the tests ran
-        :param notifications_str: If you want to add an extra notification
-        :param key_path: the ssh key path
-        :return:
-        """
-        # Set grep from timestamp (epoch time +- minute)
-        notifications_list = self.get_notifications(
-            int(before_test_timestamp.strftime('%s')) * 1000 - MILLISECONDS_DIFF
-        )
-
-        grep_time_back = '"{}\|{}"'.format(
-            before_test_timestamp - datetime.timedelta(minutes=1),
-            before_test_timestamp + datetime.timedelta(
-                seconds=time.timezone - 3600) - datetime.timedelta(
-                milliseconds=MILLISECONDS_DIFF)
-        )
-
-        ssh_command = "cat {alooma_log} | " \
-                      "grep {grep_time_back} -A 999999 | " \
-                      "grep {grep_err_warn}".format(
-                          alooma_log=ALOOMA_LOG_PATH,
-                          grep_time_back=grep_time_back,
-                          grep_err_warn=GREP_ERR_WARN)
-
-        alooma_log_output = self.write_command_and_read_output(
-            ssh_command=ssh_command, key_path=key_path)
-        notifications_str += self.parse_notifications_errors(notifications_list)
-        return {
-            "notifications": notifications_str,
-            "alooma_log_rows": alooma_log_output
-        }
+    def stream_segment(self, json_content):
+        res = requests.post(self.segment_url,
+                            json=json_content,
+                            headers={"Content-Type": "application/json"})
+        if not response_is_ok(res):
+            print(res.reason)
+        return res
 
     def get_plumbing(self):
         url = self.rest_url + "/plumbing?resolution=30sec"
@@ -509,31 +520,6 @@ class Alooma(object):
             ]
         )
         return messages_to_str
-
-    def write_command_and_read_output(self, ssh_command,
-                                      key_path=DEFAULT_KEY_PATH):
-        """
-        :param ssh_command: the ssh command we want to execute
-        :param key_path: the id_rsa file path
-        :return: the execution output
-        """
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Connect to server
-        ssh.connect(hostname=self.hostname,
-                    username="ubuntu",
-                    key_filename=key_path)
-
-        # Exec command
-        stdin, stdout, stderr = ssh.exec_command(ssh_command)
-
-        # Read stdout
-        stdout_read = stdout.read()
-
-        # Close ssh
-        ssh.close()
-        return stdout_read
 
     def clean_system(self):
         self.set_transform_to_default()
@@ -592,6 +578,15 @@ class Alooma(object):
             print("Could not get event type due to - {exception}".format(
                 exception=res.reason))
         return json.loads(res.content.decode())
+
+    def set_classifier_by_input(self):
+        classifier_json = {"BY_SOURCE": {}}
+        url = self.rest_url + "/type-classifier"
+        res = requests.put(url, json=classifier_json,
+                           **self.requests_params)
+        if res.status_code not in [204, 200]:
+            print("Could not set classify by input due to - {exception}".format(
+                exception=res.reason))
 
     def set_settings_email_notifications(self, email_settings_json):
         url = self.rest_url + "/settings/email-notifications"
@@ -660,25 +655,6 @@ class Alooma(object):
         for node in plumbing["nodes"]:
             if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
                 return node
-
-    def wait_for_plumbing_to_finish(self, input_name=None, sleep_time=0.25,
-                                    wait_time=120):
-        def is_there_throughput():
-            if input_name:
-                throughput = [node['name']
-                              for node in self.get_plumbing()["nodes"]
-                              if input_name == node["name"] and
-                              node['stats']['throughput'] > 0]
-            else:
-                throughput = [node['name']
-                              for node in self.get_plumbing()["nodes"]
-                              if node['stats']['throughput'] > 0]
-            return True if throughput else False
-
-        counter = 0
-        while is_there_throughput() and counter < (wait_time / sleep_time):
-            time.sleep(sleep_time)
-            counter += 1
 
 
 def response_is_ok(response):
