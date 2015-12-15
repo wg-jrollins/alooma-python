@@ -341,6 +341,7 @@ class Alooma(object):
 
     def get_outputs_metrics(self, minutes):
         """
+        :param minutes: amount of minutes
         Returns a 4-tuple containing the number of events unmapped, discarded,
         errored and loaded
         """
@@ -661,6 +662,7 @@ def response_is_ok(response):
 
 def non_empty_datapoint_values(data):
     """
+    :param data: self descriptive
     From a graphite like response, return the values of the non-empty datapoints
     """
     if data:
