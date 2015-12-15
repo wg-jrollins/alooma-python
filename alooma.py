@@ -543,7 +543,7 @@ class Alooma(object):
             self.delete_event_type(event_type["name"])
 
     def delete_event_type(self, event_type):
-        if urllib.parse:
+        if hasattr(urllib, "parse"):
             event_type = urllib.parse.quote_plus(event_type)
         else:
             event_type = urllib.quote_plus(event_type)
@@ -565,7 +565,7 @@ class Alooma(object):
         return json.loads(res.content.decode())
 
     def get_event_type(self, event_type):
-        if urllib.parse:
+        if hasattr(urllib, "parse"):
             event_type = urllib.parse.quote_plus(event_type)
         else:
             event_type = urllib.quote_plus(event_type)
