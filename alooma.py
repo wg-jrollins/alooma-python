@@ -2,6 +2,8 @@ import json
 import time
 import requests
 import urllib
+import datetime
+import paramiko
 
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
 DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
@@ -16,6 +18,10 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 }
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
+DEFAULT_KEY_PATH = "/home/ubuntu/.ssh/id_rsa"
+MILLISECONDS_DIFF = 40000
+ALOOMA_LOG_PATH = "/var/log/docker-instances/supervisor/alooma/alooma.log"
+GREP_ERR_WARN = '" ERROR\| WARN"'
 
 
 class FailedToCreateInputException(Exception):
@@ -39,7 +45,8 @@ class Alooma(object):
                                 'verify': False}
 
     def __login(self, username, password):
-        print("Attempting to login and obtain a session cookie from %s..." % format(self.hostname))
+        print("Attempting to login and obtain a session cookie from %s..." %
+              format(self.hostname))
         url = self.rest_url + 'login'
         login_data = {"email": username, "password": password}
         response = requests.post(url, json=login_data)
@@ -120,8 +127,8 @@ class Alooma(object):
         while retries_left > 0:
             retries_left -= 1
             structure = self.get_structure()
-            input_type_nodes = [x for x in structure['nodes'] if x['name']
-                                == input_post_data["name"]]
+            input_type_nodes = [x for x in structure['nodes'] if x['name'] ==
+                                input_post_data["name"]]
             if len(input_type_nodes) == len(previous_nodes) + 1:
                 old_ids = set([x['id'] for x in previous_nodes])
                 current_ids = set([x['id'] for x in input_type_nodes])
@@ -234,7 +241,8 @@ class Alooma(object):
                                     for example:
                                         1. INT doesn't need any attributes.
                                         2. VARCHAR need the max column length
-
+        :param column_name: self descriptive
+        :param non_null: self descriptive
         :return: new mapping dict with new argument
         """
 
@@ -298,8 +306,8 @@ class Alooma(object):
             # field["fieldName"] == field_to_find
             print("Could not find field path")
 
-    def set_input_sleep_time(self, id, sleep_time):
-        url = self.rest_url + 'inputSleepTime/%s' % id
+    def set_input_sleep_time(self, input_id, sleep_time):
+        url = self.rest_url + 'inputSleepTime/%s' % input_id
         res = requests.put(url, str(sleep_time), **self.requests_params)
         return res
 
@@ -366,25 +374,36 @@ class Alooma(object):
             print ("Failed to get max latency, returning 0. Reason: %s", e)
             return 0
 
-
-    def create_table(self, tableName, columns):
+    def create_table(self, table_name, columns):
         """
+        :param table_name: self descriptive
+        :param columns: self descriptive
         columns example:
         columns = [
-        {'columnName':'price', 'distKey': False, 'primaryKey': False, 'sortKeyIndex': -1, 'columnType':{'type':'FLOAT', 'nonNull': False}},
-        {'columnName':'event', 'distKey': True, 'primaryKey': False, 'sortKeyIndex': 0, 'columnType':{'type':'VARCHAR', 'length':256, 'nonNull': False}}
+        {
+            'columnName': 'price', 'distKey': False, 'primaryKey': False,
+            'sortKeyIndex': -1,
+            'columnType': {'type': 'FLOAT', 'nonNull': False}
+        }, {
+            'columnName': 'event', 'distKey': True, 'primaryKey': False,
+            'sortKeyIndex': 0,
+            'columnType': {
+                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+            }
+        }
         ]
         """
-        url = self.rest_url + 'tables/' + tableName
+        url = self.rest_url + 'tables/' + table_name
 
         res = requests.post(url, json=columns, **self.requests_params)
 
         if res.status_code not in [204, 200]:
-            print("Could not create table due to - {exception}".format(exception=res.reason))
+            print("Could not create table due to - {exception}".format(
+                    exception=res.reason))
 
         return json.loads(res.content.decode())
 
-    #TODO standardize the responses (handling of error code etc)
+    # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = requests.get(url, cookies=self.cookie)
@@ -400,6 +419,41 @@ class Alooma(object):
             res = json.loads(res.content.decode())
             return res
 
+    def get_errors_since(self, before_test_timestamp, notifications_str="",
+                         key_path=DEFAULT_KEY_PATH):
+        """
+        :param before_test_timestamp: datetime.now() before the tests ran
+        :param notifications_str: If you want to add an extra notification
+        :param key_path: the ssh key path
+        :return:
+        """
+        # Set grep from timestamp (epoch time +- minute)
+        notifications_list = self.get_notifications(
+            int(before_test_timestamp.strftime('%s')) * 1000 - MILLISECONDS_DIFF
+        )
+
+        grep_time_back = '"{}\|{}"'.format(
+            before_test_timestamp - datetime.timedelta(minutes=1),
+            before_test_timestamp + datetime.timedelta(
+                seconds=time.timezone - 3600) - datetime.timedelta(
+                milliseconds=MILLISECONDS_DIFF)
+        )
+
+        ssh_command = "cat {alooma_log} | " \
+                      "grep {grep_time_back} -A 999999 | " \
+                      "grep {grep_err_warn}".format(
+                          alooma_log=ALOOMA_LOG_PATH,
+                          grep_time_back=grep_time_back,
+                          grep_err_warn=GREP_ERR_WARN)
+
+        alooma_log_output = self.write_command_and_read_output(
+            ssh_command=ssh_command, key_path=key_path)
+        notifications_str += self.parse_notifications_errors(notifications_list)
+        return {
+            "notifications": notifications_str,
+            "alooma_log_rows": alooma_log_output
+        }
+
     def get_plumbing(self):
         url = self.rest_url + "/plumbing?resolution=30sec"
         res = requests.get(url, cookies=self.cookie)
@@ -412,24 +466,25 @@ class Alooma(object):
                 return node
         return None
 
-    def set_redshift_config(self, hostname, port, schema_name, database_name, username, password, skip_validation=False):
+    def set_redshift_config(self, hostname, port, schema_name, database_name,
+                            username, password, skip_validation=False):
         redshift_node = self.get_redshift_node()
         print(redshift_node)
         payload = {
-            'configuration' : {
-                'hostname' : hostname,
-                'port' : port,
-                'schemaName' : schema_name,
+            'configuration': {
+                'hostname': hostname,
+                'port': port,
+                'schemaName': schema_name,
                 'databaseName': database_name,
-                'username' : username,
-                'password' : password,
-                'skipValidation' : skip_validation
+                'username': username,
+                'password': password,
+                'skipValidation': skip_validation
                 },
-            'category' : 'OUTPUT',
-            'id' : redshift_node['id'],
-            'name' : 'Redshift',
-            'type' : 'REDSHIFT',
-            'deleted' : False
+            'category': 'OUTPUT',
+            'id': redshift_node['id'],
+            'name': 'Redshift',
+            'type': 'REDSHIFT',
+            'deleted': False
         }
         url = self.rest_url + '/plumbing/nodes/'+redshift_node['id']
         res = requests.put(url=url, json=payload, **self.requests_params)
@@ -454,6 +509,31 @@ class Alooma(object):
             ]
         )
         return messages_to_str
+
+    def write_command_and_read_output(self, ssh_command,
+                                      key_path=DEFAULT_KEY_PATH):
+        """
+        :param ssh_command: the ssh command we want to execute
+        :param key_path: the id_rsa file path
+        :return: the execution output
+        """
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Connect to server
+        ssh.connect(hostname=self.hostname,
+                    username="ubuntu",
+                    key_filename=key_path)
+
+        # Exec command
+        stdin, stdout, stderr = ssh.exec_command(ssh_command)
+
+        # Read stdout
+        stdout_read = stdout.read()
+
+        # Close ssh
+        ssh.close()
+        return stdout_read
 
     def clean_system(self):
         self.set_transform_to_default()
@@ -612,6 +692,7 @@ def non_empty_datapoint_values(data):
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
     return []
+
 
 def remove_stats(mapping):
     if mapping['stats']:
