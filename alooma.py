@@ -30,8 +30,6 @@ class Alooma(object):
         self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
                                                    port,
                                                    server_prefix)
-        self.segment_url = 'http://%s%s/segment' % (hostname,
-                                                    server_prefix)
         self.cookie = self.__login(username, password)
         if not self.cookie:
             raise Exception('Failed to obtain cookie')
@@ -331,9 +329,9 @@ class Alooma(object):
 
     def get_outputs_metrics(self, minutes):
         """
-        :param minutes: amount of minutes back since the wanted metrics
-        Returns a 4-tuple containing the number of events unmapped, discarded,
-        errored and loaded
+        Returns the number of events erred / unmapped / discarded / loaded in
+        the last X minutes
+        :param minutes - number of minutes to check
         """
         url = self.rest_url + 'metrics?metrics=UNMAPPED_EVENTS,IGNORED_EVENTS,'\
                               'ERROR_EVENTS,LOADED_EVENTS_RATE' \
@@ -597,6 +595,7 @@ class Alooma(object):
     def _get_node_by(self, field, value):
         """
         Get the node by (id, name, type, etc...)
+        e.g. _get_node_by("type", "RESTREAM") ->
         :param field: the field to look the node by it
         :param value: tha value of the field
         :return: first node that found, if no node found for this case return
