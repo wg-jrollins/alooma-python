@@ -141,11 +141,9 @@ class Alooma(object):
                 type=input_post_data["type"]))
 
     def get_transform_node_id(self):
-        plumbing = self.get_plumbing()
-        nodes = plumbing['nodes']
-        for node in nodes:
-            if node['type'] == 'TRANSFORMER':
-                return node['id']
+        transform_node = self._get_node_by('type', 'TRANSFORMER')
+        if transform_node:
+            return transform_node['id']
 
         raise Exception('Could not locate transform id for %s' %
                         self.hostname)
@@ -173,16 +171,6 @@ class Alooma(object):
         res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
                             **self.requests_params)
         return res
-
-    def set_classifier_by_field(self, field_name):
-        url = self.rest_url + "type-classifier"
-        res = requests.put(url, json={
-            "BY_FIELD": {
-                "fieldName": field_name
-            }
-        }, cookies=self.cookie)
-        if not response_is_ok(res):
-            print(res.reason)
 
     def discard_event_type(self, event_type):
         event_type_json = {
@@ -236,7 +224,8 @@ class Alooma(object):
         if field:
             mapping["fields"].remove(field)
 
-    def map_field(self, schema, field_path, column_name, field_type, non_null,
+    @staticmethod
+    def map_field(schema, field_path, column_name, field_type, non_null,
                   **type_attributes):
         """
         :param  schema: this is the mapping json
@@ -251,9 +240,9 @@ class Alooma(object):
         :return: new mapping dict with new argument
         """
 
-        field = self.find_field_name(schema, field_path, True)
-        self.set_mapping_for_field(field, column_name, field_type,
-                                   non_null, **type_attributes)
+        field = Alooma.find_field_name(schema, field_path, True)
+        Alooma.set_mapping_for_field(field, column_name, field_type,
+                                     non_null, **type_attributes)
 
     @staticmethod
     def set_mapping_for_field(field, column_name,
@@ -276,7 +265,8 @@ class Alooma(object):
         parent_field["fields"].append(field)
         return field
 
-    def find_field_name(self, schema, field_path, add_if_missing=False):
+    @staticmethod
+    def find_field_name(schema, field_path, add_if_missing=False):
         """
         :param schema:  this is the dict that this method run over ot
                         recursively
@@ -298,11 +288,11 @@ class Alooma(object):
         if field:
             if not remaining_path:
                 return field
-            return self.find_field_name(field, remaining_path[0])
+            return Alooma.find_field_name(field, remaining_path[0])
         elif add_if_missing:
             parent_field = schema
             for field in fields_list:
-                parent_field = self.add_field(parent_field, field)
+                parent_field = Alooma.add_field(parent_field, field)
             return parent_field
         else:
             # print this if the field is not found,
@@ -341,7 +331,7 @@ class Alooma(object):
 
     def get_outputs_metrics(self, minutes):
         """
-        :param minutes: amount of minutes
+        :param minutes: amount of minutes back since the wanted metrics
         Returns a 4-tuple containing the number of events unmapped, discarded,
         errored and loaded
         """
@@ -427,25 +417,6 @@ class Alooma(object):
         res = requests.get(url, cookies=self.cookie)
         return res
 
-    def create_table_one_column(self, table_name, column_name, column_type,
-                                non_null, primary_key, dist_key, sort_key,
-                                **type_attrs):
-        table_json = [{
-            'columnName': column_name,
-            'columnType': {
-                'type': column_type,
-                'nonNull': str(non_null).lower(),
-            },
-            'primaryKey': str(primary_key).lower(),
-            'distKey': str(dist_key).lower(),
-            'sortKeyIndex': 0 if sort_key else -1,
-        }]
-        for k, v in type_attrs.items():
-            table_json[0]['columnType'][k] = v
-        url = self.rest_url + 'tables/' + table_name
-        res = requests.post(url, json=table_json, cookies=self.cookie)
-        return res
-
     def get_notifications(self, epoch_time):
         url = self.rest_url + "notifications?from={epoch_time}". \
             format(epoch_time=epoch_time)
@@ -456,25 +427,13 @@ class Alooma(object):
             res = json.loads(res.content.decode())
             return res
 
-    def stream_segment(self, json_content):
-        res = requests.post(self.segment_url,
-                            json=json_content,
-                            headers={"Content-Type": "application/json"})
-        if not response_is_ok(res):
-            print(res.reason)
-        return res
-
     def get_plumbing(self):
         url = self.rest_url + "/plumbing?resolution=30sec"
         res = requests.get(url, cookies=self.cookie)
         return json.loads(res.content.decode())
 
     def get_redshift_node(self):
-        plumbing = self.get_plumbing()
-        for node in plumbing['nodes']:
-            if node['name'] == 'Redshift':
-                return node
-        return None
+        return self._get_node_by('name', 'Redshift')
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False):
@@ -578,15 +537,6 @@ class Alooma(object):
                 exception=res.reason))
         return json.loads(res.content.decode())
 
-    def set_classifier_by_input(self):
-        classifier_json = {"BY_SOURCE": {}}
-        url = self.rest_url + "/type-classifier"
-        res = requests.put(url, json=classifier_json,
-                           **self.requests_params)
-        if res.status_code not in [204, 200]:
-            print("Could not set classify by input due to - {exception}".format(
-                exception=res.reason))
-
     def set_settings_email_notifications(self, email_settings_json):
         url = self.rest_url + "/settings/email-notifications"
         res = requests.post(url, json=email_settings_json,
@@ -614,13 +564,10 @@ class Alooma(object):
             time.sleep(1)
 
     def start_restream(self):
-        plumbing = self.get_plumbing()
-        restream_id = None
-        for node in plumbing["nodes"]:
-            if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
-                restream_id = node["id"]
+        restream_node = self._get_node_by('type', RESTREAM_QUEUE_TYPE_NAME)
 
-        if restream_id:
+        if restream_node:
+            restream_id = restream_node["id"]
             url = self.rest_url + "/plumbing/nodes/{restream_id}".format(
                 restream_id=restream_id)
             restream_click_button_json = {
@@ -644,16 +591,22 @@ class Alooma(object):
                 restream_type=RESTREAM_QUEUE_TYPE_NAME))
 
     def get_restream_queue_size(self):
-        plumbing = self.get_plumbing()
-        for node in plumbing["nodes"]:
-            if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
-                return node["stats"]["availbleForRestream"]
+        restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
+        return restream_node["stats"]["availbleForRestream"]
 
-    def get_restream_input(self):
+    def _get_node_by(self, field, value):
+        """
+        Get the node by (id, name, type, etc...)
+        :param field: the field to look the node by it
+        :param value: tha value of the field
+        :return: first node that found, if no node found for this case return
+        None
+        """
         plumbing = self.get_plumbing()
         for node in plumbing["nodes"]:
-            if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
+            if node[field] == value:
                 return node
+        return None
 
 
 def response_is_ok(response):
@@ -662,7 +615,6 @@ def response_is_ok(response):
 
 def non_empty_datapoint_values(data):
     """
-    :param data: self descriptive
     From a graphite like response, return the values of the non-empty datapoints
     """
     if data:
