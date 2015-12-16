@@ -2,7 +2,7 @@
 from distutils.core import setup
 
 setup(name='alooma',
-      version='0.1.2',
+      version='0.1.3',
       description='Alooma python API',
       author='Yonatan Kiron',
       author_email='yonatan@alooma.io',
