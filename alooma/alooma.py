@@ -39,8 +39,6 @@ class Alooma(object):
                                 'verify': False}
 
     def __login(self, username, password):
-        print("Attempting to login and obtain a session cookie from %s..." %
-              format(self.hostname))
         url = self.rest_url + 'login'
         login_data = {"email": username, "password": password}
         response = requests.post(url, json=login_data)
@@ -113,8 +111,8 @@ class Alooma(object):
         res = requests.post(url=url, json=input_post_data,
                             **self.requests_params)
         if not response_is_ok(res):
-            print("Failed to create input due reason {reason}"
-                  "".format(reason=res.reason))
+            raise Exception("Failed to create input due reason {reason}"
+                            "".format(reason=res.reason))
             return
         new_id = None
         retries_left = 10
@@ -151,8 +149,8 @@ class Alooma(object):
             rest_url=self.rest_url, input_id=input_id)
         res = requests.post(url=url, **self.requests_params)
         if not response_is_ok(res):
-            print("Could not remove input due to reason: \n"
-                  "{reason}".format(reason=res.reason))
+            raise Exception("Could not remove input due to reason: \n"
+                            "{reason}".format(reason=res.reason))
 
     def set_transform_to_default(self):
         transform = DEFAULT_TRANSFORM_CODE
@@ -271,7 +269,7 @@ class Alooma(object):
         :param field_path: this would use us to find the keys
         :param add_if_missing: add the field if missing
         :return:    the field that we wanna find and to do on it some changes.
-                    if the field is not found then return None and print it
+                    if the field is not found then raise exception
         """
 
         fields_list = field_path.split('.', 1)
@@ -293,10 +291,10 @@ class Alooma(object):
                 parent_field = Alooma.add_field(parent_field, field)
             return parent_field
         else:
-            # print this if the field is not found,
+            # raise this if the field is not found,
             # not standing with the case ->
             # field["fieldName"] == field_to_find
-            print("Could not find field path")
+            raise Exception("Could not find field path")
 
     def set_input_sleep_time(self, input_id, sleep_time):
         url = self.rest_url + 'inputSleepTime/%s' % input_id
@@ -377,8 +375,8 @@ class Alooma(object):
             else:
                 return 0
         except Exception as e:
-            print ("Failed to get max latency, returning 0. Reason: %s", e)
-            return 0
+            raise Exception("Failed to get max latency, returning 0. "
+                            "Reason: %s", e)
 
     def create_table(self, table_name, columns):
         """
@@ -404,8 +402,8 @@ class Alooma(object):
         res = requests.post(url, json=columns, **self.requests_params)
 
         if res.status_code not in [204, 200]:
-            print("Could not create table due to - {exception}".format(
-                    exception=res.reason))
+            raise Exception("Could not create table due to - "
+                            "{exception}".format(exception=res.reason))
 
         return json.loads(res.content.decode())
 
@@ -420,7 +418,7 @@ class Alooma(object):
             format(epoch_time=epoch_time)
         res = requests.get(url, cookies=self.cookie)
         if res.status_code not in [200, 204]:
-            print("Failed to get notifications")
+            raise Exception("Failed to get notifications")
         else:
             res = json.loads(res.content.decode())
             return res
@@ -436,7 +434,6 @@ class Alooma(object):
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False):
         redshift_node = self.get_redshift_node()
-        print(redshift_node)
         payload = {
             'configuration': {
                 'hostname': hostname,
@@ -456,8 +453,8 @@ class Alooma(object):
         url = self.rest_url + '/plumbing/nodes/'+redshift_node['id']
         res = requests.put(url=url, json=payload, **self.requests_params)
         if res.status_code not in [204, 200]:
-            print("Could not configure Redshift due to - {exception}".format(
-                exception=res.reason))
+            raise Exception("Could not configure Redshift due to - "
+                            "{exception}".format(exception=res.reason))
         return json.loads(res.content.decode())
 
     def get_redshift_config(self):
@@ -517,8 +514,8 @@ class Alooma(object):
         url = self.rest_url + '/event-types'
         res = requests.get(url=url, **self.requests_params)
         if res.status_code not in [204, 200]:
-            print("Could not get event types due to - {exception}".format(
-                exception=res.reason))
+            raise Exception("Could not get event types due to - "
+                            "{exception}".format(exception=res.reason))
         return json.loads(res.content.decode())
 
     def get_event_type(self, event_type):
@@ -531,8 +528,8 @@ class Alooma(object):
             event_type)
         res = requests.get(url=url, **self.requests_params)
         if res.status_code not in [204, 200]:
-            print("Could not get event type due to - {exception}".format(
-                exception=res.reason))
+            raise Exception("Could not get event type due to - "
+                            "{exception}".format(exception=res.reason))
         return json.loads(res.content.decode())
 
     def set_settings_email_notifications(self, email_settings_json):
@@ -540,15 +537,15 @@ class Alooma(object):
         res = requests.post(url, json=email_settings_json,
                             **self.requests_params)
         if res.status_code not in [204, 200]:
-            print("Could not set email notifications settings due to - "
-                  "{exception}".format(exception=res.reason))
+            raise Exception("Could not set email notifications settings due "
+                            "to - {exception}".format(exception=res.reason))
 
     def delete_s3_retention(self):
         url = self.rest_url + "/settings/s3-retention"
         res = requests.delete(url, **self.requests_params)
         if res.status_code not in [204, 200]:
-            print("Could not set s3 retention settings due to - "
-                  "{exception}".format(exception=res.reason))
+            raise Exception("Could not set s3 retention settings due to - "
+                            "{exception}".format(exception=res.reason))
 
     def clean_restream_queue(self):
         event_types = self.get_event_types()
@@ -582,11 +579,11 @@ class Alooma(object):
             res = requests.put(url, json=restream_click_button_json,
                                **self.requests_params)
             if res.status_code not in [204, 200]:
-                print("Could not click restream button due to - {exception}"
-                      .format(exception=res.reason))
+                raise Exception("Could not click restream button due to - "
+                                "{exception}".format(exception=res.reason))
         else:
-            print("Could not find '{restream_type}' type".format(
-                restream_type=RESTREAM_QUEUE_TYPE_NAME))
+            raise Exception("Could not find '{restream_type}' type".format(
+                    restream_type=RESTREAM_QUEUE_TYPE_NAME))
 
     def get_restream_queue_size(self):
         restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
