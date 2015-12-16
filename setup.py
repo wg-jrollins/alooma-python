@@ -8,8 +8,8 @@ setup(name='alooma',
       author_email='yonatan@alooma.io',
       packages=['alooma'],
       install_requires=[
-        "urllib3>=1.12",
-        "requests>=2.8.1",
+        "urllib3>=1.13",
+        "requests>=2.9.0",
         "paramiko>=1.16.0"
       ],
       keywords=['alooma']
