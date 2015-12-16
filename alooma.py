@@ -39,7 +39,8 @@ class Alooma(object):
                                 'verify': False}
 
     def __login(self, username, password):
-        print("Attempting to login and obtain a session cookie from %s..." % format(self.hostname))
+        print("Attempting to login and obtain a session cookie from %s..." %
+              format(self.hostname))
         url = self.rest_url + 'login'
         login_data = {"email": username, "password": password}
         response = requests.post(url, json=login_data)
@@ -120,8 +121,8 @@ class Alooma(object):
         while retries_left > 0:
             retries_left -= 1
             structure = self.get_structure()
-            input_type_nodes = [x for x in structure['nodes'] if x['name']
-                                == input_post_data["name"]]
+            input_type_nodes = [x for x in structure['nodes'] if x['name'] ==
+                                input_post_data["name"]]
             if len(input_type_nodes) == len(previous_nodes) + 1:
                 old_ids = set([x['id'] for x in previous_nodes])
                 current_ids = set([x['id'] for x in input_type_nodes])
@@ -138,11 +139,9 @@ class Alooma(object):
                 type=input_post_data["type"]))
 
     def get_transform_node_id(self):
-        plumbing = self.get_plumbing()
-        nodes = plumbing['nodes']
-        for node in nodes:
-            if node['type'] == 'TRANSFORMER':
-                return node['id']
+        transform_node = self._get_node_by('type', 'TRANSFORMER')
+        if transform_node:
+            return transform_node['id']
 
         raise Exception('Could not locate transform id for %s' %
                         self.hostname)
@@ -234,7 +233,8 @@ class Alooma(object):
                                     for example:
                                         1. INT doesn't need any attributes.
                                         2. VARCHAR need the max column length
-
+        :param column_name: self descriptive
+        :param non_null: self descriptive
         :return: new mapping dict with new argument
         """
 
@@ -298,8 +298,8 @@ class Alooma(object):
             # field["fieldName"] == field_to_find
             print("Could not find field path")
 
-    def set_input_sleep_time(self, id, sleep_time):
-        url = self.rest_url + 'inputSleepTime/%s' % id
+    def set_input_sleep_time(self, input_id, sleep_time):
+        url = self.rest_url + 'inputSleepTime/%s' % input_id
         res = requests.put(url, str(sleep_time), **self.requests_params)
         return res
 
@@ -326,6 +326,20 @@ class Alooma(object):
             return max(incoming)
         else:
             return 0
+
+    def get_outputs_metrics(self, minutes):
+        """
+        Returns the number of events erred / unmapped / discarded / loaded in
+        the last X minutes
+        :param minutes - number of minutes to check
+        """
+        url = self.rest_url + 'metrics?metrics=UNMAPPED_EVENTS,IGNORED_EVENTS,'\
+                              'ERROR_EVENTS,LOADED_EVENTS_RATE' \
+                              '&from=-%dmin&resolution=%dmin' % (
+                                  minutes, minutes)
+        response = json.loads(
+            requests.get(url, **self.requests_params).content)
+        return tuple([sum(non_empty_datapoint_values([r])) for r in response])
 
     def get_throughput_by_name(self, name):
         structure = self.get_structure()
@@ -366,25 +380,36 @@ class Alooma(object):
             print ("Failed to get max latency, returning 0. Reason: %s", e)
             return 0
 
-
-    def create_table(self, tableName, columns):
+    def create_table(self, table_name, columns):
         """
+        :param table_name: self descriptive
+        :param columns: self descriptive
         columns example:
         columns = [
-        {'columnName':'price', 'distKey': False, 'primaryKey': False, 'sortKeyIndex': -1, 'columnType':{'type':'FLOAT', 'nonNull': False}},
-        {'columnName':'event', 'distKey': True, 'primaryKey': False, 'sortKeyIndex': 0, 'columnType':{'type':'VARCHAR', 'length':256, 'nonNull': False}}
+        {
+            'columnName': 'price', 'distKey': False, 'primaryKey': False,
+            'sortKeyIndex': -1,
+            'columnType': {'type': 'FLOAT', 'nonNull': False}
+        }, {
+            'columnName': 'event', 'distKey': True, 'primaryKey': False,
+            'sortKeyIndex': 0,
+            'columnType': {
+                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+            }
+        }
         ]
         """
-        url = self.rest_url + 'tables/' + tableName
+        url = self.rest_url + 'tables/' + table_name
 
         res = requests.post(url, json=columns, **self.requests_params)
 
         if res.status_code not in [204, 200]:
-            print("Could not create table due to - {exception}".format(exception=res.reason))
+            print("Could not create table due to - {exception}".format(
+                    exception=res.reason))
 
         return json.loads(res.content.decode())
 
-    #TODO standardize the responses (handling of error code etc)
+    # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = requests.get(url, cookies=self.cookie)
@@ -406,30 +431,27 @@ class Alooma(object):
         return json.loads(res.content.decode())
 
     def get_redshift_node(self):
-        plumbing = self.get_plumbing()
-        for node in plumbing['nodes']:
-            if node['name'] == 'Redshift':
-                return node
-        return None
+        return self._get_node_by('name', 'Redshift')
 
-    def set_redshift_config(self, hostname, port, schema_name, database_name, username, password, skip_validation=False):
+    def set_redshift_config(self, hostname, port, schema_name, database_name,
+                            username, password, skip_validation=False):
         redshift_node = self.get_redshift_node()
         print(redshift_node)
         payload = {
-            'configuration' : {
-                'hostname' : hostname,
-                'port' : port,
-                'schemaName' : schema_name,
+            'configuration': {
+                'hostname': hostname,
+                'port': port,
+                'schemaName': schema_name,
                 'databaseName': database_name,
-                'username' : username,
-                'password' : password,
-                'skipValidation' : skip_validation
+                'username': username,
+                'password': password,
+                'skipValidation': skip_validation
                 },
-            'category' : 'OUTPUT',
-            'id' : redshift_node['id'],
-            'name' : 'Redshift',
-            'type' : 'REDSHIFT',
-            'deleted' : False
+            'category': 'OUTPUT',
+            'id': redshift_node['id'],
+            'name': 'Redshift',
+            'type': 'REDSHIFT',
+            'deleted': False
         }
         url = self.rest_url + '/plumbing/nodes/'+redshift_node['id']
         res = requests.put(url=url, json=payload, **self.requests_params)
@@ -478,7 +500,7 @@ class Alooma(object):
             self.delete_event_type(event_type["name"])
 
     def delete_event_type(self, event_type):
-        if urllib.parse:
+        if hasattr(urllib, "parse"):
             event_type = urllib.parse.quote_plus(event_type)
         else:
             event_type = urllib.quote_plus(event_type)
@@ -500,7 +522,7 @@ class Alooma(object):
         return json.loads(res.content.decode())
 
     def get_event_type(self, event_type):
-        if urllib.parse:
+        if hasattr(urllib, "parse"):
             event_type = urllib.parse.quote_plus(event_type)
         else:
             event_type = urllib.quote_plus(event_type)
@@ -540,13 +562,10 @@ class Alooma(object):
             time.sleep(1)
 
     def start_restream(self):
-        plumbing = self.get_plumbing()
-        restream_id = None
-        for node in plumbing["nodes"]:
-            if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
-                restream_id = node["id"]
+        restream_node = self._get_node_by('type', RESTREAM_QUEUE_TYPE_NAME)
 
-        if restream_id:
+        if restream_node:
+            restream_id = restream_node["id"]
             url = self.rest_url + "/plumbing/nodes/{restream_id}".format(
                 restream_id=restream_id)
             restream_click_button_json = {
@@ -570,10 +589,23 @@ class Alooma(object):
                 restream_type=RESTREAM_QUEUE_TYPE_NAME))
 
     def get_restream_queue_size(self):
+        restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
+        return restream_node["stats"]["availbleForRestream"]
+
+    def _get_node_by(self, field, value):
+        """
+        Get the node by (id, name, type, etc...)
+        e.g. _get_node_by("type", "RESTREAM") ->
+        :param field: the field to look the node by it
+        :param value: tha value of the field
+        :return: first node that found, if no node found for this case return
+        None
+        """
         plumbing = self.get_plumbing()
         for node in plumbing["nodes"]:
-            if node["type"] == RESTREAM_QUEUE_TYPE_NAME:
-                return node["stats"]["availbleForRestream"]
+            if node[field] == value:
+                return node
+        return None
 
 
 def response_is_ok(response):
@@ -587,6 +619,7 @@ def non_empty_datapoint_values(data):
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
     return []
+
 
 def remove_stats(mapping):
     if mapping['stats']:
