@@ -3,3 +3,4 @@ setup.cfg
 setup.py
 alooma/__init__.py
 alooma/alooma.py
+requirements.txt
