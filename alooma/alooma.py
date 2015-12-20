@@ -15,6 +15,8 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
     "recipients": []
 }
 
+DEFAULT_ENCODING = 'utf-8'
+
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 
 
@@ -51,13 +53,13 @@ class Alooma(object):
     def get_config(self):
         url_get = self.rest_url + 'config/export'
         response = requests.get(url=url_get, **self.requests_params)
-        config_export = json.loads(response.content.decode())
+        config_export = json.loads(response.content.decode(DEFAULT_ENCODING))
         return config_export
 
     def get_structure(self):
         url_get = self.rest_url + 'plumbing/?resolution=1min'
         response = requests.get(url=url_get, **self.requests_params)
-        structure = json.loads(response.content.decode())
+        structure = json.loads(response.content.decode(DEFAULT_ENCODING))
         return structure
 
     def get_mapping_mode(self):
@@ -304,7 +306,7 @@ class Alooma(object):
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
         res = requests.get(url, **self.requests_params)
-        return json.loads(res.content.decode())["code"]
+        return json.loads(res.content.decode(DEFAULT_ENCODING))["code"]
 
     def set_transform(self, transform):
         data = {'language': 'PYTHON', 'code': transform,
@@ -318,7 +320,7 @@ class Alooma(object):
                               '&from=-%dmin&resolution=%dmin' % (
                                   minutes, minutes)
         response = json.loads(
-            requests.get(url, **self.requests_params).content.decode())
+            requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
         incoming = non_empty_datapoint_values(response)
         if incoming:
             return max(incoming)
@@ -348,14 +350,14 @@ class Alooma(object):
         url = self.rest_url + 'metrics?metrics=INCOMING_EVENTS&from=-' \
                               '%dmin&resolution=%dmin' % (minutes, minutes)
         response = json.loads(
-            requests.get(url, **self.requests_params).content.decode())
+            requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
         return sum(non_empty_datapoint_values(response))
 
     def get_average_event_size(self, minutes):
         url = self.rest_url + 'metrics?metrics=EVENT_SIZE_AVG&from=-' \
                               '%dmin&resolution=%dmin' % (minutes, minutes)
         response = json.loads(
-            requests.get(url, **self.requests_params).content.decode())
+            requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
 
         values = non_empty_datapoint_values(response)
         if not values:
@@ -368,7 +370,7 @@ class Alooma(object):
                               '-%dmin&resolution=%dmin' % (minutes, minutes)
         try:
             response = json.loads(
-                requests.get(url, **self.requests_params).content.decode())
+                requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
             latencies = non_empty_datapoint_values(response)
             if latencies:
                 return max(latencies) / 1000
@@ -405,7 +407,7 @@ class Alooma(object):
             raise Exception("Could not create table due to - "
                             "{exception}".format(exception=res.reason))
 
-        return json.loads(res.content.decode())
+        return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
@@ -420,13 +422,13 @@ class Alooma(object):
         if res.status_code not in [200, 204]:
             raise Exception("Failed to get notifications")
         else:
-            res = json.loads(res.content.decode())
+            res = json.loads(res.content.decode(DEFAULT_ENCODING))
             return res
 
     def get_plumbing(self):
         url = self.rest_url + "/plumbing?resolution=30sec"
         res = requests.get(url, cookies=self.cookie)
-        return json.loads(res.content.decode())
+        return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_redshift_node(self):
         return self._get_node_by('name', 'Redshift')
@@ -455,7 +457,7 @@ class Alooma(object):
         if res.status_code not in [204, 200]:
             raise Exception("Could not configure Redshift due to - "
                             "{exception}".format(exception=res.reason))
-        return json.loads(res.content.decode())
+        return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
@@ -516,7 +518,7 @@ class Alooma(object):
         if res.status_code not in [204, 200]:
             raise Exception("Could not get event types due to - "
                             "{exception}".format(exception=res.reason))
-        return json.loads(res.content.decode())
+        return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_event_type(self, event_type):
         if hasattr(urllib, "parse"):
@@ -530,7 +532,7 @@ class Alooma(object):
         if res.status_code not in [204, 200]:
             raise Exception("Could not get event type due to - "
                             "{exception}".format(exception=res.reason))
-        return json.loads(res.content.decode())
+        return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def set_settings_email_notifications(self, email_settings_json):
         url = self.rest_url + "/settings/email-notifications"
