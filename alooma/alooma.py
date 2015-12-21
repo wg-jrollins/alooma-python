@@ -32,7 +32,9 @@ class Alooma(object):
         self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
                                                    port,
                                                    server_prefix)
-        self.cookie = self.__login(username, password)
+        self.username = username
+        self.password = password
+        self.cookie = self.__login()
         if not self.cookie:
             raise Exception('Failed to obtain cookie')
 
@@ -40,31 +42,53 @@ class Alooma(object):
                                 'cookies': self.cookie,
                                 'verify': False}
 
-    def __login(self, username, password):
+    def __send_request(self, func, args_dict, is_recheck=False):
+
+        response = func(**args_dict)
+
+        if response_is_ok(response):
+            return response
+
+        if response.status_code == 401 and not is_recheck:
+            self.cookie = self.__login()
+            response = func(**args_dict)
+
+            if response_is_ok(response):
+                return response
+
+            return self.__send_request(func, args_dict, True)
+
+        raise Exception("The rest call to {url} failed: {error_message}".format(
+                url=response.url, error_message=response.content))
+
+    def __login(self):
         url = self.rest_url + 'login'
-        login_data = {"email": username, "password": password}
+        login_data = {"email": self.username, "password": self.password}
         response = requests.post(url, json=login_data)
         if response.status_code == 200:
             return response.cookies
         else:
             raise Exception('Failed to login to {} with username: '
-                            '{}'.format(self.hostname, username))
+                            '{}'.format(self.hostname, self.username))
 
     def get_config(self):
         url_get = self.rest_url + 'config/export'
-        response = requests.get(url=url_get, **self.requests_params)
+        response = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url_get}))
         config_export = json.loads(response.content.decode(DEFAULT_ENCODING))
         return config_export
 
     def get_structure(self):
         url_get = self.rest_url + 'plumbing/?resolution=1min'
-        response = requests.get(url=url_get, **self.requests_params)
+        response = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url_get}))
         structure = json.loads(response.content.decode(DEFAULT_ENCODING))
         return structure
 
     def get_mapping_mode(self):
         url = self.rest_url + 'mapping-mode'
-        res = requests.get(url, **self.requests_params)
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
         return res.content
 
     def get_mapping(self, event_type):
@@ -110,12 +134,10 @@ class Alooma(object):
                           if x['name'] == input_post_data['name']]
 
         url = self.rest_url + 'plumbing/nodes'
-        res = requests.post(url=url, json=input_post_data,
-                            **self.requests_params)
-        if not response_is_ok(res):
-            raise Exception("Failed to create input due reason {reason}"
-                            "".format(reason=res.reason))
-            return
+
+        self.__send_request(requests.post, update_requests_params(
+                self.requests_params, {"url": url, "json": input_post_data}))
+
         new_id = None
         retries_left = 10
         while retries_left > 0:
@@ -149,10 +171,8 @@ class Alooma(object):
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
             rest_url=self.rest_url, input_id=input_id)
-        res = requests.post(url=url, **self.requests_params)
-        if not response_is_ok(res):
-            raise Exception("Could not remove input due to reason: \n"
-                            "{reason}".format(reason=res.reason))
+        self.__send_request(requests.post, update_requests_params(
+                self.requests_params, {"url": url}))
 
     def set_transform_to_default(self):
         transform = DEFAULT_TRANSFORM_CODE
@@ -161,13 +181,8 @@ class Alooma(object):
     def set_mapping(self, mapping, event_type):
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
-        res = requests.post(url, json=mapping, **self.requests_params)
-        return res
-
-    def set_mapping_mode(self, flexible):
-        url = self.rest_url + 'mapping-mode'
-        res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
-                            **self.requests_params)
+        res = self.__send_request(requests.post, update_requests_params(
+                self.requests_params, {"url": url, "json": mapping}))
         return res
 
     def discard_event_type(self, event_type):
@@ -300,27 +315,32 @@ class Alooma(object):
 
     def set_input_sleep_time(self, input_id, sleep_time):
         url = self.rest_url + 'inputSleepTime/%s' % input_id
-        res = requests.put(url, str(sleep_time), **self.requests_params)
+        res = self.__send_request(requests.put, update_requests_params(
+                self.requests_params, {"url": url, "data": str(sleep_time)}))
         return res
 
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
-        res = requests.get(url, **self.requests_params)
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
         return json.loads(res.content.decode(DEFAULT_ENCODING))["code"]
 
     def set_transform(self, transform):
         data = {'language': 'PYTHON', 'code': transform,
                 'functionName': 'main'}
         url = self.rest_url + 'transform/functions/main'
-        res = requests.post(url, json=data, **self.requests_params)
+        res = self.__send_request(requests.post, update_requests_params(
+                self.requests_params, {"url": url, "json": data}))
         return res
 
     def get_incoming_queue_metric(self, minutes):
         url = self.rest_url + 'metrics?metrics=EVENTS_IN_PIPELINE' \
                               '&from=-%dmin&resolution=%dmin' % (
                                   minutes, minutes)
-        response = json.loads(
-            requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
+
+        response = json.loads(res.content.decode(DEFAULT_ENCODING))
         incoming = non_empty_datapoint_values(response)
         if incoming:
             return max(incoming)
@@ -337,8 +357,11 @@ class Alooma(object):
                               'ERROR_EVENTS,LOADED_EVENTS_RATE' \
                               '&from=-%dmin&resolution=%dmin' % (
                                   minutes, minutes)
-        response = json.loads(
-            requests.get(url, **self.requests_params).content)
+
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
+
+        response = json.loads(res.content)
         return tuple([sum(non_empty_datapoint_values([r])) for r in response])
 
     def get_throughput_by_name(self, name):
@@ -349,15 +372,20 @@ class Alooma(object):
     def get_incoming_events_count(self, minutes):
         url = self.rest_url + 'metrics?metrics=INCOMING_EVENTS&from=-' \
                               '%dmin&resolution=%dmin' % (minutes, minutes)
-        response = json.loads(
-            requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
+
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
+
+        response = json.loads(res.content.decode(DEFAULT_ENCODING))
         return sum(non_empty_datapoint_values(response))
 
     def get_average_event_size(self, minutes):
         url = self.rest_url + 'metrics?metrics=EVENT_SIZE_AVG&from=-' \
                               '%dmin&resolution=%dmin' % (minutes, minutes)
-        response = json.loads(
-            requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
+
+        response = json.loads(res.content.decode(DEFAULT_ENCODING))
 
         values = non_empty_datapoint_values(response)
         if not values:
@@ -369,8 +397,10 @@ class Alooma(object):
         url = self.rest_url + 'metrics?metrics=LATENCY_MAX&from=' \
                               '-%dmin&resolution=%dmin' % (minutes, minutes)
         try:
-            response = json.loads(
-                requests.get(url, **self.requests_params).content.decode(DEFAULT_ENCODING))
+            res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
+
+            response = json.loads(res.content.decode(DEFAULT_ENCODING))
             latencies = non_empty_datapoint_values(response)
             if latencies:
                 return max(latencies) / 1000
@@ -401,33 +431,29 @@ class Alooma(object):
         """
         url = self.rest_url + 'tables/' + table_name
 
-        res = requests.post(url, json=columns, **self.requests_params)
-
-        if res.status_code not in [204, 200]:
-            raise Exception("Could not create table due to - "
-                            "{exception}".format(exception=res.reason))
+        res = self.__send_request(requests.post, update_requests_params(
+                self.requests_params, {"url": url, "json": columns}))
 
         return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
         url = self.rest_url + 'tables'
-        res = requests.get(url, cookies=self.cookie)
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url, "cookies": self.cookie}))
         return res
 
     def get_notifications(self, epoch_time):
         url = self.rest_url + "notifications?from={epoch_time}". \
             format(epoch_time=epoch_time)
-        res = requests.get(url, cookies=self.cookie)
-        if res.status_code not in [200, 204]:
-            raise Exception("Failed to get notifications")
-        else:
-            res = json.loads(res.content.decode(DEFAULT_ENCODING))
-            return res
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url, "cookies": self.cookie}))
+        return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_plumbing(self):
         url = self.rest_url + "/plumbing?resolution=30sec"
-        res = requests.get(url, cookies=self.cookie)
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url, "cookies": self.cookie}))
         return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_redshift_node(self):
@@ -453,10 +479,9 @@ class Alooma(object):
             'deleted': False
         }
         url = self.rest_url + '/plumbing/nodes/'+redshift_node['id']
-        res = requests.put(url=url, json=payload, **self.requests_params)
-        if res.status_code not in [204, 200]:
-            raise Exception("Could not configure Redshift due to - "
-                            "{exception}".format(exception=res.reason))
+
+        res = self.__send_request(requests.put, update_requests_params(
+                self.requests_params, {"url": url, "json": payload}))
         return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_redshift_config(self):
@@ -481,7 +506,6 @@ class Alooma(object):
         self.clean_restream_queue()
         self.remove_all_inputs()
         self.delete_all_event_types()
-        self.set_mapping_mode(flexible=False)
         self.set_settings_email_notifications(
             DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS)
         self.delete_s3_retention()
@@ -506,18 +530,14 @@ class Alooma(object):
 
         url = self.rest_url + '/event-types/{event_type}'\
             .format(event_type=event_type)
-        res = requests.delete(url,  **self.requests_params)
-        if res.status_code not in [204, 200]:
-            raise "Could not delete event type -{event_type} due to - " \
-                  "{exception}".format(
-                      exception=res.reason, event_type=event_type)
+
+        self.__send_request(requests.delete, update_requests_params(
+                self.requests_params, {"url": url}))
 
     def get_event_types(self):
         url = self.rest_url + '/event-types'
-        res = requests.get(url=url, **self.requests_params)
-        if res.status_code not in [204, 200]:
-            raise Exception("Could not get event types due to - "
-                            "{exception}".format(exception=res.reason))
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
         return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def get_event_type(self, event_type):
@@ -528,26 +548,21 @@ class Alooma(object):
 
         url = self.rest_url + '/event-types/' + urllib.quote_plus(
             event_type)
-        res = requests.get(url=url, **self.requests_params)
-        if res.status_code not in [204, 200]:
-            raise Exception("Could not get event type due to - "
-                            "{exception}".format(exception=res.reason))
+
+        res = self.__send_request(requests.get, update_requests_params(
+                self.requests_params, {"url": url}))
         return json.loads(res.content.decode(DEFAULT_ENCODING))
 
     def set_settings_email_notifications(self, email_settings_json):
         url = self.rest_url + "/settings/email-notifications"
-        res = requests.post(url, json=email_settings_json,
-                            **self.requests_params)
-        if res.status_code not in [204, 200]:
-            raise Exception("Could not set email notifications settings due "
-                            "to - {exception}".format(exception=res.reason))
+        self.__send_request(requests.post, update_requests_params(
+                self.requests_params, {"url": url,
+                                       "json": email_settings_json}))
 
     def delete_s3_retention(self):
         url = self.rest_url + "/settings/s3-retention"
-        res = requests.delete(url, **self.requests_params)
-        if res.status_code not in [204, 200]:
-            raise Exception("Could not set s3 retention settings due to - "
-                            "{exception}".format(exception=res.reason))
+        self.__send_request(requests.delete, update_requests_params(
+                self.requests_params, {"url": url}))
 
     def clean_restream_queue(self):
         event_types = self.get_event_types()
@@ -578,11 +593,9 @@ class Alooma(object):
                 "deleted": False,
                 "state": None
             }
-            res = requests.put(url, json=restream_click_button_json,
-                               **self.requests_params)
-            if res.status_code not in [204, 200]:
-                raise Exception("Could not click restream button due to - "
-                                "{exception}".format(exception=res.reason))
+            self.__send_request(requests.put, update_requests_params(
+                self.requests_params, {"url": url,
+                                       "json": restream_click_button_json}))
         else:
             raise Exception("Could not find '{restream_type}' type".format(
                     restream_type=RESTREAM_QUEUE_TYPE_NAME))
@@ -628,3 +641,9 @@ def remove_stats(mapping):
         for index, field in enumerate(mapping['fields']):
             mapping['fields'][index] = remove_stats(field)
     return mapping
+
+
+def update_requests_params(requests_params, dict_to_add):
+    new_requests_params = requests_params.copy()
+    new_requests_params.update(dict_to_add)
+    return new_requests_params
