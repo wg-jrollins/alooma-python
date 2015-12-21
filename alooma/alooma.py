@@ -75,15 +75,14 @@ class Alooma(object):
         url_get = self.rest_url + 'config/export'
         response = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url_get}))
-        config_export = json.loads(response.content.decode(DEFAULT_ENCODING))
+        config_export = parse_response_to_json(response)
         return config_export
 
     def get_structure(self):
         url_get = self.rest_url + 'plumbing/?resolution=1min'
         response = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url_get}))
-        structure = json.loads(response.content.decode(DEFAULT_ENCODING))
-        return structure
+        return parse_response_to_json(response)
 
     def get_mapping_mode(self):
         url = self.rest_url + 'mapping-mode'
@@ -323,7 +322,7 @@ class Alooma(object):
         url = self.rest_url + 'transform/functions/main'
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
-        return json.loads(res.content.decode(DEFAULT_ENCODING))["code"]
+        return parse_response_to_json(res)["code"]
 
     def set_transform(self, transform):
         data = {'language': 'PYTHON', 'code': transform,
@@ -340,7 +339,7 @@ class Alooma(object):
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
 
-        response = json.loads(res.content.decode(DEFAULT_ENCODING))
+        response = parse_response_to_json(res)
         incoming = non_empty_datapoint_values(response)
         if incoming:
             return max(incoming)
@@ -361,7 +360,7 @@ class Alooma(object):
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
 
-        response = json.loads(res.content)
+        response = parse_response_to_json(res)
         return tuple([sum(non_empty_datapoint_values([r])) for r in response])
 
     def get_throughput_by_name(self, name):
@@ -376,7 +375,7 @@ class Alooma(object):
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
 
-        response = json.loads(res.content.decode(DEFAULT_ENCODING))
+        response = parse_response_to_json(res)
         return sum(non_empty_datapoint_values(response))
 
     def get_average_event_size(self, minutes):
@@ -385,7 +384,7 @@ class Alooma(object):
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
 
-        response = json.loads(res.content.decode(DEFAULT_ENCODING))
+        response = parse_response_to_json(res)
 
         values = non_empty_datapoint_values(response)
         if not values:
@@ -400,7 +399,7 @@ class Alooma(object):
             res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
 
-            response = json.loads(res.content.decode(DEFAULT_ENCODING))
+            response = parse_response_to_json(res)
             latencies = non_empty_datapoint_values(response)
             if latencies:
                 return max(latencies) / 1000
@@ -434,7 +433,7 @@ class Alooma(object):
         res = self.__send_request(requests.post, update_requests_params(
                 self.requests_params, {"url": url, "json": columns}))
 
-        return json.loads(res.content.decode(DEFAULT_ENCODING))
+        return parse_response_to_json(res)
 
     # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
@@ -448,13 +447,13 @@ class Alooma(object):
             format(epoch_time=epoch_time)
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url, "cookies": self.cookie}))
-        return json.loads(res.content.decode(DEFAULT_ENCODING))
+        return parse_response_to_json(res)
 
     def get_plumbing(self):
-        url = self.rest_url + "/plumbing?resolution=30sec"
+        url = self.rest_url + "plumbing?resolution=30sec"
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url, "cookies": self.cookie}))
-        return json.loads(res.content.decode(DEFAULT_ENCODING))
+        return parse_response_to_json(res)
 
     def get_redshift_node(self):
         return self._get_node_by('name', 'Redshift')
@@ -478,11 +477,11 @@ class Alooma(object):
             'type': 'REDSHIFT',
             'deleted': False
         }
-        url = self.rest_url + '/plumbing/nodes/'+redshift_node['id']
+        url = self.rest_url + 'plumbing/nodes/'+redshift_node['id']
 
         res = self.__send_request(requests.put, update_requests_params(
                 self.requests_params, {"url": url, "json": payload}))
-        return json.loads(res.content.decode(DEFAULT_ENCODING))
+        return parse_response_to_json(res)
 
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
@@ -528,17 +527,17 @@ class Alooma(object):
         else:
             event_type = urllib.quote_plus(event_type)
 
-        url = self.rest_url + '/event-types/{event_type}'\
+        url = self.rest_url + 'event-types/{event_type}'\
             .format(event_type=event_type)
 
         self.__send_request(requests.delete, update_requests_params(
                 self.requests_params, {"url": url}))
 
     def get_event_types(self):
-        url = self.rest_url + '/event-types'
+        url = self.rest_url + 'event-types'
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
-        return json.loads(res.content.decode(DEFAULT_ENCODING))
+        return parse_response_to_json(res)
 
     def get_event_type(self, event_type):
         if hasattr(urllib, "parse"):
@@ -546,21 +545,21 @@ class Alooma(object):
         else:
             event_type = urllib.quote_plus(event_type)
 
-        url = self.rest_url + '/event-types/' + urllib.quote_plus(
+        url = self.rest_url + 'event-types/' + urllib.quote_plus(
             event_type)
 
         res = self.__send_request(requests.get, update_requests_params(
                 self.requests_params, {"url": url}))
-        return json.loads(res.content.decode(DEFAULT_ENCODING))
+        return parse_response_to_json(res)
 
     def set_settings_email_notifications(self, email_settings_json):
-        url = self.rest_url + "/settings/email-notifications"
+        url = self.rest_url + "settings/email-notifications"
         self.__send_request(requests.post, update_requests_params(
                 self.requests_params, {"url": url,
                                        "json": email_settings_json}))
 
     def delete_s3_retention(self):
-        url = self.rest_url + "/settings/s3-retention"
+        url = self.rest_url + "settings/s3-retention"
         self.__send_request(requests.delete, update_requests_params(
                 self.requests_params, {"url": url}))
 
@@ -580,7 +579,7 @@ class Alooma(object):
 
         if restream_node:
             restream_id = restream_node["id"]
-            url = self.rest_url + "/plumbing/nodes/{restream_id}".format(
+            url = self.rest_url + "plumbing/nodes/{restream_id}".format(
                 restream_id=restream_id)
             restream_click_button_json = {
                 "id": restream_id,
@@ -622,6 +621,10 @@ class Alooma(object):
 
 def response_is_ok(response):
     return 200 <= response.status_code < 300
+
+
+def parse_response_to_json(response):
+    return json.loads(response.content.decode(DEFAULT_ENCODING))
 
 
 def non_empty_datapoint_values(data):
