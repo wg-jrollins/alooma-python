@@ -354,6 +354,14 @@ class Alooma(object):
         response = parse_response_to_json(res)
         return tuple([sum(non_empty_datapoint_values([r])) for r in response])
 
+    def get_restream_queue_metrics(self, minutes):
+        url = self.rest_url + 'metrics?metrics=EVENTS_IN_TRANSIT&from=-' \
+                              '%dmin&resolution=%dmin' % (minutes, minutes)
+        res = self.__send_request(requests.get, url)
+
+        response = parse_response_to_json(res)
+        return non_empty_datapoint_values(response)[0]
+
     def get_throughput_by_name(self, name):
         structure = self.get_structure()
         return [x['stats']['throughput'] for x in structure['nodes']
