@@ -108,6 +108,12 @@ class Alooma(object):
         res = self.__send_request(requests.get, url)
         return res.content
 
+    def set_mapping_mode(self, flexible):
+        url = self.rest_url + 'mapping-mode'
+        res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
+                            **self.requests_params)
+        return res
+
     def get_mapping(self, event_type):
         event_type = self.get_event_type(event_type)
         mapping = remove_stats(event_type)
