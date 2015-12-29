@@ -401,9 +401,6 @@ class Alooma(object):
             for sc in status_codes:
                 if samples_stats[event_type][sc] > 0:
                     samples = self.get_samples(event_type, sc)
-                    #test only one sample for now
-                    if status_code is None:
-                        samples = samples[0:1]
                     for s in samples:
                         s['result'] = self.test_transform(s['sample'],
                                                           curr_transform)
