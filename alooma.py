@@ -315,7 +315,7 @@ class Alooma(object):
         if error_codes and isinstance(error_codes, list):
             url += ''.join([ '&status=%s' % ec for ec in error_codes])
         res = requests.get(url, **self.requests_params)
-        return json.loads(res.content.decode())
+        return json.loads(res.content)
 
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
@@ -328,6 +328,41 @@ class Alooma(object):
         url = self.rest_url + 'transform/functions/main'
         res = requests.post(url, json=data, **self.requests_params)
         return res
+
+    def test_transform(self, sample, temp_transform=None):
+        url = self.rest_url + 'transform/functions/run'
+        if temp_transform is None:
+            temp_transform = self.get_transform()
+        if not isinstance(sample, dict):
+            sample = json.loads(sample)
+        data = {
+            'language': 'PYTHON',
+            'functionName': 'test',
+            'code': temp_transform,
+            'sample': sample
+        }
+        res = requests.post(url, json=data, **self.requests_params)
+        return json.loads(res.content)
+
+    def test_transform_all_samples(self, event_type=None, status_code=None):
+        curr_transform = self.get_transform()
+        samples_stats = self.get_samples_stats()
+        results = []
+        event_types = [event_type] if event_type else samples_stats.keys()
+        for event_type in event_types:
+            status_codes = [status_code] if status_code \
+                                         else samples_stats[event_type].keys()
+            for sc in status_codes:
+                if samples_stats[event_type][sc] > 0:
+                    samples = self.get_samples(event_type, sc)
+                    #test only one sample for now
+                    if status_code is None:
+                        samples = samples[0:1]
+                    for s in samples:
+                        s['result'] = self.test_transform(s['sample'],
+                                                          curr_transform)
+                        results.append(s)
+        return results
 
     def get_incoming_queue_metric(self, minutes):
         url = self.rest_url + 'metrics?metrics=EVENTS_IN_PIPELINE' \
