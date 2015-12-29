@@ -42,7 +42,13 @@ mapping_mode = alooma.get_mapping_mode()
 * `map_field(schema, field_path, column_name, field_type, non_null, **type_attributes)`
 * `find_field_name(schema, field_path, add_if_missing=False)`
 * `set_input_sleep_time(id, sleep_time)`
+* `get_samples_status_codes()`
+* `get_samples_stats()`
+* `get_samples(event_type=None, status_codes=None)`
 * `get_transform()`
+* `set_transform(transform)`
+* `test_transform(sample, temp_transform=None)`
+* `test_transform_all_samples(event_type, status_code)`
 * `get_incoming_queue_metric(minutes)`
 * `get_throughput_by_name(name)`
 * `get_incoming_events_count(minutes)`
