@@ -303,6 +303,20 @@ class Alooma(object):
         res = requests.put(url, str(sleep_time), **self.requests_params)
         return res
 
+    def get_samples_stats(self):
+        url = self.rest_url + 'samples/stats'
+        res = requests.get(url, **self.requests_params)
+        return json.loads(res.content.decode())
+
+    def get_samples(self, event_type=None, error_codes=None):
+        url = self.rest_url + 'samples'
+        if event_type:
+            url += '?event_type=%s' % event_type
+        if error_codes and isinstance(error_codes, list):
+            url += ''.join([ '&status=%s' % ec for ec in error_codes])
+        res = requests.get(url, **self.requests_params)
+        return json.loads(res.content.decode())
+
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
         res = requests.get(url, **self.requests_params)
