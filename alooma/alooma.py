@@ -1,7 +1,6 @@
 import json
 import time
 import requests
-import six
 from six.moves import urllib
 
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
@@ -200,7 +199,7 @@ class Alooma(object):
         self.set_transform(transform=transform)
 
     def set_mapping(self, mapping, event_type):
-        event_type = parse_quote(event_type)
+        event_type = urllib.parse.quote(event_type)
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
         res = self.__send_request(requests.post, url, json=mapping)
@@ -333,15 +332,6 @@ class Alooma(object):
             # not standing with the case ->
             # field["fieldName"] == field_to_find
             raise Exception("Could not find field path")
-
-    def get_input_sleep_time(self, input_id):
-        """
-        :param input_id:    ID of the input whose sleep time to return
-        :return:            sleep time of the input with ID input_id
-        """
-        url = self.rest_url + 'inputSleepTime/%s' % input_id
-        res = requests.get(url, **self.requests_params)
-        return float(json.loads(res.content).get('inputSleepTime'))
 
     def get_input_sleep_time(self, input_id):
         """
@@ -648,7 +638,7 @@ class Alooma(object):
             self.delete_event_type(event_type["name"])
 
     def delete_event_type(self, event_type):
-        event_type = parse_quote(event_type)
+        event_type = urllib.parse.quote(event_type)
         url = self.rest_url + 'event-types/{event_type}'\
             .format(event_type=event_type)
 
@@ -660,7 +650,7 @@ class Alooma(object):
         return parse_response_to_json(res)
 
     def get_event_type(self, event_type):
-        event_type = parse_quote(event_type)
+        event_type = urllib.parse.quote(event_type)
         url = self.rest_url + 'event-types/' + event_type
 
         res = self.__send_request(requests.get, url)
@@ -754,10 +744,3 @@ def remove_stats(mapping):
         for index, field in enumerate(mapping['fields']):
             mapping['fields'][index] = remove_stats(field)
     return mapping
-
-
-def parse_quote(string_to_parse):
-    if six.PY2:
-        return urllib.parse.quote(string_to_parse, safe='')
-    elif six.PY3:
-        return urllib.quote(string_to_parse, safe='')
