@@ -334,10 +334,63 @@ class Alooma(object):
             # field["fieldName"] == field_to_find
             raise Exception("Could not find field path")
 
-    def set_input_sleep_time(self, input_id, sleep_time):
+    def get_input_sleep_time(self, input_id):
+        """
+        :param input_id:    ID of the input whose sleep time to return
+        :return:            sleep time of the input with ID input_id
+        """
         url = self.rest_url + 'inputSleepTime/%s' % input_id
-        res = self.__send_request(requests.put, url, data=str(sleep_time))
+        res = requests.get(url, **self.requests_params)
+        return float(json.loads(res.content).get('inputSleepTime'))
+
+    def set_input_sleep_time(self, input_id, sleep_time):
+        """
+        :param input_id:    ID of the input whose sleep time to change
+        :param sleep_time:  new sleep time to set for input with ID input_id
+        :return:            result of the REST request
+        """
+        url = self.rest_url + 'inputSleepTime/%s' % input_id
+        res = requests.put(url, str(sleep_time), **self.requests_params)
         return res
+
+    def get_samples_status_codes(self):
+        """
+        :return:    a list of status codes each event in Alooma may be tagged
+                    with. As Alooma supports more processing capabilities,
+                    status codes may be added. These status codes are used for
+                    sampling events according to the events' type & status.
+        """
+        url = self.rest_url + 'status-types'
+        res = requests.get(url, **self.requests_params)
+        return json.loads(res.content)
+
+    def get_samples_stats(self):
+        """
+        :return:    a dictionary where the keys are names of event types,
+                    and each value is another dictionary which maps from status
+                    code to the amount of samples for that event type & status
+        """
+        url = self.rest_url + 'samples/stats'
+        res = requests.get(url, **self.requests_params)
+        return json.loads(res.content.decode())
+
+    def get_samples(self, event_type=None, error_codes=None):
+        """
+        :param event_type:  optional string containing an event type name
+        :param error_codes: optional list of strings containing event status
+                            codes. status codes may be any string returned by
+                            `get_sample_status_codes()`
+        :return:    a list of 10 samples. if event_type is passed, only samples
+                    of that event type will be returned. if error_codes is given
+                    only samples of those status codes are returned.
+        """
+        url = self.rest_url + 'samples'
+        if event_type:
+            url += '?eventType=%s' % event_type
+        if error_codes and isinstance(error_codes, list):
+            url += ''.join(['&status=%s' % ec for ec in error_codes])
+        res = requests.get(url, **self.requests_params)
+        return json.loads(res.content)
 
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
@@ -350,6 +403,47 @@ class Alooma(object):
         url = self.rest_url + 'transform/functions/main'
         res = self.__send_request(requests.post, url, json=data)
         return res
+
+    def test_transform(self, sample, temp_transform=None):
+        url = self.rest_url + 'transform/functions/run'
+        if temp_transform is None:
+            temp_transform = self.get_transform()
+        if not isinstance(sample, dict):
+            sample = json.loads(sample)
+        data = {
+            'language': 'PYTHON',
+            'functionName': 'test',
+            'code': temp_transform,
+            'sample': sample
+        }
+        res = requests.post(url, json=data, **self.requests_params)
+        return json.loads(res.content)
+
+    def test_transform_all_samples(self, event_type=None, status_code=None):
+        """
+        test many samples on the current transform at once
+        :param event_type:  optional string containing event type name
+        :param status_code: optional status code string
+        :return:    a list of samples (filtered by the event type & status code
+                    if provided), for each sample, a 'result' key is added which
+                    includes the result of the current transform function after
+                    it was run with the sample.
+        """
+        curr_transform = self.get_transform()
+        samples_stats = self.get_samples_stats()
+        results = []
+        event_types = [event_type] if event_type else samples_stats.keys()
+        for event_type in event_types:
+            status_codes = [status_code] if status_code \
+                else samples_stats[event_type].keys()
+            for sc in status_codes:
+                if samples_stats[event_type][sc] > 0:
+                    samples = self.get_samples(event_type, sc)
+                    for s in samples:
+                        s['result'] = self.test_transform(s['sample'],
+                                                          curr_transform)
+                        results.append(s)
+        return results
 
     def get_metrics_by_names(self, metric_names, minutes):
         if type(metric_names) != list and type(metric_names) == str:
