@@ -343,6 +343,15 @@ class Alooma(object):
         res = requests.get(url, **self.requests_params)
         return float(json.loads(res.content).get('inputSleepTime'))
 
+    def get_input_sleep_time(self, input_id):
+        """
+        :param input_id:    ID of the input whose sleep time to return
+        :return:            sleep time of the input with ID input_id
+        """
+        url = self.rest_url + 'inputSleepTime/%s' % input_id
+        res = requests.get(url, **self.requests_params)
+        return float(json.loads(res.content).get('inputSleepTime'))
+
     def set_input_sleep_time(self, input_id, sleep_time):
         """
         :param input_id:    ID of the input whose sleep time to change
@@ -405,6 +414,18 @@ class Alooma(object):
         return res
 
     def test_transform(self, sample, temp_transform=None):
+        """
+        :param sample:  a json string or a dict, representing a sample event
+        :param temp_transform: optional string containing transform code. if
+                        not provided, the currently deployed transform will be
+                        used.
+        :return:        the results of a test run of the temp_transform on the
+                        given sample. This returns a dictionary with the
+                        following keys:
+                            'output' - strings printed by the transform function
+                            'result' - the resulting event
+                            'runtime' - millis it took the function to run
+        """
         url = self.rest_url + 'transform/functions/run'
         if temp_transform is None:
             temp_transform = self.get_transform()
