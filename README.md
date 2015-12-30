@@ -41,6 +41,7 @@ mapping_mode = alooma.get_mapping_mode()
 * `unmap_field(mapping, field_path)`
 * `map_field(schema, field_path, column_name, field_type, non_null, **type_attributes)`
 * `find_field_name(schema, field_path, add_if_missing=False)`
+* `get_input_sleep_time(id)`
 * `set_input_sleep_time(id, sleep_time)`
 * `get_samples_status_codes()`
 * `get_samples_stats()`

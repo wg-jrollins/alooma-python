@@ -298,7 +298,21 @@ class Alooma(object):
             # field["fieldName"] == field_to_find
             print("Could not find field path")
 
+    def get_input_sleep_time(self, input_id):
+        """
+        :param input_id:    ID of the input whose sleep time to return
+        :return:            sleep time of the input with ID input_id
+        """
+        url = self.rest_url + 'inputSleepTime/%s' % input_id
+        res = requests.get(url, **self.requests_params)
+        return float(json.loads(res.content).get('inputSleepTime'))
+
     def set_input_sleep_time(self, input_id, sleep_time):
+        """
+        :param input_id:    ID of the input whose sleep time to change
+        :param sleep_time:  new sleep time to set for input with ID input_id
+        :return:            result of the REST request
+        """
         url = self.rest_url + 'inputSleepTime/%s' % input_id
         res = requests.put(url, str(sleep_time), **self.requests_params)
         return res
