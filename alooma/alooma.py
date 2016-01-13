@@ -578,7 +578,7 @@ class Alooma(object):
 
         res = self.__send_request(requests.put, url, json=columns)
 
-        return parse_response_to_json(res)
+        return res
 
 
 # TODO standardize the responses (handling of error code etc)
