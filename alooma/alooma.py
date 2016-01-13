@@ -555,7 +555,33 @@ class Alooma(object):
 
         return parse_response_to_json(res)
 
-    # TODO standardize the responses (handling of error code etc)
+    def alter_table(self, table_name, columns):
+        """
+        :param table_name: self descriptive
+        :param columns: self descriptive
+        columns example:
+        columns = [
+        {
+            'columnName': 'price', 'distKey': False, 'primaryKey': False,
+            'sortKeyIndex': -1,
+            'columnType': {'type': 'FLOAT', 'nonNull': False}
+        }, {
+            'columnName': 'event', 'distKey': True, 'primaryKey': False,
+            'sortKeyIndex': 0,
+            'columnType': {
+                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+            }
+        }
+        ]
+        """
+        url = self.rest_url + 'tables/' + table_name
+
+        res = self.__send_request(requests.put, url, json=columns)
+
+        return parse_response_to_json(res)
+
+
+# TODO standardize the responses (handling of error code etc)
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = self.__send_request(requests.get, url)
