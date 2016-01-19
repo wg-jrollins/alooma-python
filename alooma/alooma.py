@@ -393,8 +393,13 @@ class Alooma(object):
 
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
-        res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)["code"]
+        try:
+            res = self.__send_request(requests.get, url)
+            return parse_response_to_json(res)["code"]
+        except:
+            defaults_url = self.rest_url + 'transform/defaults'
+            res = self.__send_request(requests.get, defaults_url)
+            return parse_response_to_json(res)["PYTHON"]
 
     def set_transform(self, transform):
         data = {'language': 'PYTHON', 'code': transform,
