@@ -97,10 +97,21 @@ class Alooma(object):
         config_export = parse_response_to_json(response)
         return config_export
 
+    def import_config(self, new_config):
+        url_post = self.rest_url + 'config/import'
+        res = requests.post(url_post, json=new_config,
+                            **self.requests_params)
+        if res.status_code not in [200, 204]:
+            raise Exception(res.text)
+
     def get_structure(self):
         url_get = self.rest_url + 'plumbing/?resolution=1min'
         response = self.__send_request(requests.get, url_get)
         return parse_response_to_json(response)
+
+    def get_mappings(self):
+        config = self.get_config()
+        return config['eventTypes']
 
     def get_mapping_mode(self):
         url = self.rest_url + 'mapping-mode'
