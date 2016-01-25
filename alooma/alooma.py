@@ -83,7 +83,7 @@ class Alooma(object):
         if response.status_code == 200:
             self.cookie = response.cookies
             self.requests_params = {
-                    'timeout': 20,
+                    'timeout': 60,
                     'cookies': self.cookie,
                     'verify': False
             }
