@@ -780,7 +780,7 @@ def non_empty_datapoint_values(data):
 
 
 def remove_stats(mapping):
-    if mapping['stats']:
+    if 'stats' in mapping:
         del mapping['stats']
 
     if mapping['fields']:
