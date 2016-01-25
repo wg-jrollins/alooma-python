@@ -8,10 +8,10 @@ reqs = [str(ir.req) for ir in install_reqs]
 from distutils.core import setup
 
 setup(name='alooma',
-      version='0.1.14',
+      version='0.1.15',
       description='Alooma python API',
       author='Yonatan Kiron',
-      author_email='yonatankiron@gmail.com',
+      author_email='yonatan@alooma.io',
       packages=['alooma'],
       install_requires=reqs,
       keywords=['alooma']
