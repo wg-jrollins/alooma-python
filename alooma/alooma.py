@@ -669,7 +669,7 @@ class Alooma(object):
             self.delete_event_type(event_type["name"])
 
     def delete_event_type(self, event_type):
-        event_type = urllib.parse.quote(event_type)
+        event_type = urllib.parse.quote(event_type, safe="")
         url = self.rest_url + 'event-types/{event_type}'\
             .format(event_type=event_type)
 
