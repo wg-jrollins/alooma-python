@@ -590,7 +590,7 @@ class Alooma(object):
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = self.__send_request(requests.get, url)
-        return res
+        return parse_response_to_json(res)
 
     def get_notifications(self, epoch_time):
         url = self.rest_url + "notifications?from={epoch_time}". \
