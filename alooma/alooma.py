@@ -199,7 +199,7 @@ class Alooma(object):
         self.set_transform(transform=transform)
 
     def set_mapping(self, mapping, event_type):
-        event_type = urllib.parse.quote(event_type)
+        event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
         res = self.__send_request(requests.post, url, json=mapping)
@@ -669,7 +669,7 @@ class Alooma(object):
             self.delete_event_type(event_type["name"])
 
     def delete_event_type(self, event_type):
-        event_type = urllib.parse.quote(event_type, safe="")
+        event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/{event_type}'\
             .format(event_type=event_type)
 
@@ -681,7 +681,7 @@ class Alooma(object):
         return parse_response_to_json(res)
 
     def get_event_type(self, event_type):
-        event_type = urllib.parse.quote(event_type)
+        event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/' + event_type
 
         res = self.__send_request(requests.get, url)
