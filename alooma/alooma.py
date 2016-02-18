@@ -130,7 +130,8 @@ class Alooma(object):
                 'awsBucketName': bucket,
                 'awsSecretAccessKey': secret,
                 'filePrefix': prefix,
-                'loadFiles': load_files
+                'loadFiles': load_files,
+                'fileFormat': '{"type":"other"}',
             }
         }
         return self.create_input(input_post_data=post_data)
