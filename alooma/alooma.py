@@ -1,5 +1,7 @@
 import json
 import time
+
+import re
 import requests
 from six.moves import urllib
 
@@ -603,6 +605,25 @@ class Alooma(object):
         url = self.rest_url + "plumbing?resolution=30sec"
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
+
+    def get_input_nodes(self, type=None, name=None, id=None):
+        """
+        Get a dictionary of all the input nodes in your machine
+        :param type: Filter by type (e.g. "mysql")
+        :param name: Filter by name (accepts Regex)
+        :param id: Filter by node ID
+        :return: A dictionary with node name keys and node data values
+        """
+        nodes = [node for node in self.get_plumbing()['nodes']
+                 if node['category'] == 'INPUT']
+        if type:
+            nodes = [node for node in nodes if node['type'] == type]
+        if name:
+            regex = re.compile(name)
+            nodes = [node for node in nodes if regex.match(node['name'])]
+        if id:
+            nodes = [node for node in nodes if node['id'] == id]
+        return {node['name']: node for node in nodes}
 
     def get_redshift_node(self):
         return self._get_node_by('name', 'Redshift')
