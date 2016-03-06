@@ -206,6 +206,16 @@ class Alooma(object):
         res = self.__send_request(requests.post, url, json=mapping)
         return res
 
+    def auto_map(self, event_type, table_name=None):
+        table_name = table_name if table_name else event_type.lower()
+        quoted_type = urllib.quote(event_type)
+        url = '%s/event-types/%s/auto-map' % (self.rest_url, quoted_type)
+        auto_map = json.loads(self.__send_request(requests.post, url))
+        auto_map['mapping']['tableName'] = \
+            table_name if table_name else event_type
+        auto_map['state'] = 'MAPPED'
+        self.set_mapping(auto_map, event_type)
+
     def discard_event_type(self, event_type):
         event_type_json = {
             "name": event_type,
