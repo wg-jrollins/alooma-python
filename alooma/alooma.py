@@ -1,3 +1,4 @@
+import copy
 import json
 import time
 import requests
@@ -206,14 +207,21 @@ class Alooma(object):
         res = self.__send_request(requests.post, url, json=mapping)
         return res
 
-    def auto_map(self, event_type, table_name=None):
+    def auto_map(self, event_type, table_name=None,
+                 create_table_if_missing=False):
         table_name = table_name if table_name else event_type.lower()
-        quoted_type = urllib.quote(event_type)
+        quoted_type = urllib.parse.quote(event_type)
         url = '%s/event-types/%s/auto-map' % (self.rest_url, quoted_type)
-        auto_map = json.loads(self.__send_request(requests.post, url))
+        auto_map = json.loads(self.__send_request(requests.post, url).content)
         auto_map['mapping']['tableName'] = \
             table_name if table_name else event_type
         auto_map['state'] = 'MAPPED'
+        if create_table_if_missing:
+            table = [t['tableName'] for t in self.get_tables()
+                     if t['tableName'] == table_name]
+            if not table:
+                self.create_table(table_name, table_structure_from_mapping(auto_map))
+
         self.set_mapping(auto_map, event_type)
 
     def discard_event_type(self, event_type):
@@ -788,6 +796,22 @@ def non_empty_datapoint_values(data):
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
     return []
+
+
+def table_structure_from_mapping(mapping):
+    def extract_column(mapped_field):
+        cols = []
+        for subfield in mapped_field['fields']:
+            cols.extend(extract_column(subfield))
+        if 'mapping' in mapped_field and mapped_field['mapping']:
+            field_mapping = copy.deepcopy(mapped_field['mapping'])
+            [field_mapping.pop(k) for k in field_mapping.keys()
+                if k not in ['columnName', 'columnType']]
+            field_mapping['columnType'].pop('truncate', None)
+            cols.append(field_mapping)
+        return cols
+
+    return extract_column({'fields': mapping['fields']})
 
 
 def remove_stats(mapping):
