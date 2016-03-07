@@ -84,8 +84,7 @@ class Alooma(object):
             self.cookie = response.cookies
             self.requests_params = {
                     'timeout': 60,
-                    'cookies': self.cookie,
-                    'verify': False
+                    'cookies': self.cookie
             }
         else:
             raise Exception('Failed to login to {} with username: '
