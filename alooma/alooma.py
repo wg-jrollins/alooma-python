@@ -209,6 +209,14 @@ class Alooma(object):
 
     def auto_map(self, event_type, table_name=None,
                  create_table_if_missing=False):
+        """
+        Automaps an event type to a table in your Redshift. If a table name
+        is not supplied, defaults to using the event_type as a table name.
+        :param event_type: The event type to map
+        :param table_name: The table in Redshift to map the event type to
+        :param create_table_if_missing: If True, will create the table if it
+        doesn't exist
+        """
         table_name = table_name if table_name else event_type.lower()
         quoted_type = urllib.parse.quote(event_type)
         url = '%s/event-types/%s/auto-map' % (self.rest_url, quoted_type)
