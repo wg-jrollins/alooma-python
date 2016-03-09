@@ -3,6 +3,7 @@ import time
 import requests
 from six.moves import urllib
 
+MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
 DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
 
@@ -92,37 +93,105 @@ class Alooma(object):
                             '{}'.format(self.hostname, self.username))
 
     def get_config(self):
+        """
+        Exports the entire system configuration in dict format.
+        This is also used periodically by Alooma for backup purposes,
+        :return: a dict representation of the system configuration
+        """
         url_get = self.rest_url + 'config/export'
         response = self.__send_request(requests.get, url=url_get)
         config_export = parse_response_to_json(response)
         return config_export
 
+    def get_plumbing(self):
+        """
+        Returns a representation of all the inputs, outputs,
+        and on-stream processors currently configured in the system
+        :return: A dict representing the structure of the system
+        """
+        return self.get_structure()
+
     def get_structure(self):
+        """
+        Returns a representation of all the inputs, outputs,
+        and on-stream processors currently configured in the system
+        :return: A dict representing the structure of the system
+        """
         url_get = self.rest_url + 'plumbing/?resolution=1min'
         response = self.__send_request(requests.get, url_get)
         return parse_response_to_json(response)
 
     def get_mapping_mode(self):
+        """
+        Returns the default mapping mode currently set in the system.
+        """
         url = self.rest_url + 'mapping-mode'
         res = self.__send_request(requests.get, url)
         return res.content
 
-    def set_mapping_mode(self, flexible):
+    def set_mapping_mode(self, mode):
+        """
+        Sets the default mapping mode in the system. The mapping
+        mode should be one of the values in alooma.MAPPING_MODES
+        """
         url = self.rest_url + 'mapping-mode'
-        res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
-                            **self.requests_params)
+        res = requests.post(url, json=mode, **self.requests_params)
         return res
 
+    def get_event_types(self):
+        """
+        Returns a dict representation of all the event-types which
+        exist in the system
+        """
+        url = self.rest_url + 'event-types'
+        res = self.__send_request(requests.get, url)
+        return parse_response_to_json(res)
+
+    def get_event_type(self, event_type):
+        """
+        Returns a dict representation of the requested event-type
+        if it exists
+        :param event_type:  The name of the event type
+        :return: A dict representation of the event-type's data
+        """
+        event_type = urllib.parse.quote(event_type, safe='')
+        url = self.rest_url + 'event-types/' + event_type
+
+        res = self.__send_request(requests.get, url)
+        return parse_response_to_json(res)
+
     def get_mapping(self, event_type):
+        """
+        Returns a dict representation of the mapping of the event
+        type requested, if it exists
+        :param event_type: The name of the event type
+        :return: A dict representation of the mapping
+        """
         event_type = self.get_event_type(event_type)
         mapping = remove_stats(event_type)
         return mapping
 
-    def create_s3_input(self, name, key, secret, bucket, prefix,
-                        load_files, transform_id):
+    def create_s3_input(self, name, key, secret, bucket, prefix='',
+                        load_files='all'):
+        """
+        Creates an S3 input using the supplied configurations
+        :param name: The designated input name
+        :param key: a valid AWS access key
+        :param secret: a valid AWS secret key
+        :param bucket: The bucket where the data resides
+        :param prefix: An optional file path prefix. If supplied,
+        only files in paths matching the prefix will be pulled
+        :param load_files: Can be either 'all' or 'new'. If 'new'
+        is selected, files from before than the input was creaded
+        will not be pulled. Default is 'all'.
+        :return: a requests.model.Response object representing the
+        result of the create_input call
+        """
+        transform_id = self.get_transform_node_id()
+
         post_data = {
             'source': None,
-            'target': str(transform_id),
+            'target': transform_id,
             'name': name,
             'type': 'S3',
             'configuration': {
@@ -196,6 +265,10 @@ class Alooma(object):
         self.__send_request(requests.post, url)
 
     def set_transform_to_default(self):
+        """
+        Sets the Code Engine Python code to the default, which makes
+        no changes in any event
+        """
         transform = DEFAULT_TRANSFORM_CODE
         self.set_transform(transform=transform)
 
@@ -599,11 +672,6 @@ class Alooma(object):
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
 
-    def get_plumbing(self):
-        url = self.rest_url + "plumbing?resolution=30sec"
-        res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)
-
     def get_redshift_node(self):
         return self._get_node_by('name', 'Redshift')
 
@@ -676,18 +744,6 @@ class Alooma(object):
 
         self.__send_request(requests.delete, url)
 
-    def get_event_types(self):
-        url = self.rest_url + 'event-types'
-        res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)
-
-    def get_event_type(self, event_type):
-        event_type = urllib.parse.quote(event_type, safe='')
-        url = self.rest_url + 'event-types/' + event_type
-
-        res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)
-
     def get_users(self):
         url = self.rest_url + 'users/'
 
@@ -720,6 +776,10 @@ class Alooma(object):
             time.sleep(1)
 
     def start_restream(self):
+        """
+        Starts a Restream, streaming data from the Restream Queue
+        to the pipeline for processing
+        """
         restream_node = self._get_node_by('type', RESTREAM_QUEUE_TYPE_NAME)
 
         if restream_node:
@@ -744,6 +804,10 @@ class Alooma(object):
                     restream_type=RESTREAM_QUEUE_TYPE_NAME))
 
     def get_restream_queue_size(self):
+        """
+        Returns the number of events currently held in the Restream Queue
+        :return: an int representing the number of events in the queue
+        """
         restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
         return restream_node["stats"]["availbleForRestream"]
 
