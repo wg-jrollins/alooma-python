@@ -247,7 +247,7 @@ class Alooma(object):
             table = [t['tableName'] for t in self.get_tables()
                      if t['tableName'] == table_name]
             if not table:
-                self.create_table(table_name, table_structure_from_mapping(mapping))
+                self.create_table(table_name, _table_structure_from_mapping(mapping))
 
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
@@ -854,8 +854,8 @@ def non_empty_datapoint_values(data):
     return []
 
 
-def table_structure_from_mapping(mapping, primary_keys=None,
-                                 sort_keys=None, dist_key=None):
+def _table_structure_from_mapping(mapping, primary_keys=None,
+                                  sort_keys=None, dist_key=None):
     """
     Receives a mapping and extracts a table structure from it. This table
     structure can then be used to create a new table using the create_table
@@ -872,7 +872,7 @@ def table_structure_from_mapping(mapping, primary_keys=None,
     """
     def extract_column(mapped_field):
         cols = []
-        sort_key_index = -1
+        sort_key_index = 0
         for subfield in mapped_field['fields']:
             cols.extend(extract_column(subfield))
         if 'mapping' in mapped_field and mapped_field['mapping'] and \
