@@ -106,6 +106,7 @@ class Alooma(object):
 
     def get_plumbing(self):
         """
+        DEPRECATED - use get_structure() instead.
         Returns a representation of all the inputs, outputs,
         and on-stream processors currently configured in the system
         :return: A dict representing the structure of the system
@@ -185,8 +186,8 @@ class Alooma(object):
         :param prefix: An optional file path prefix. If supplied,
         only files in paths matching the prefix will be retrieved
         :param load_files: Can be either 'all' or 'new'. If 'new'
-        is selected, files which were not created/updated since  the 
-        input was creaded will not be retrieved. Default is 'all'.
+        is selected, only files which are created/updated after the
+        input was created will be retrieved. Default is 'all'.
         :return: a requests.model.Response object representing the
         result of the create_input call
         """
@@ -672,11 +673,6 @@ class Alooma(object):
     def get_notifications(self, epoch_time):
         url = self.rest_url + "notifications?from={epoch_time}". \
             format(epoch_time=epoch_time)
-        res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)
-
-    def get_plumbing(self):
-        url = self.rest_url + "plumbing?resolution=30sec"
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
 
