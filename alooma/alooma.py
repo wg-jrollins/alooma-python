@@ -152,8 +152,8 @@ class Alooma(object):
 
     def get_event_type(self, event_type):
         """
-        Returns a dict representation of the requested event-type
-        if it exists
+        Returns a dict representation of the requested event-type's
+        mapping and metadata if it exists
         :param event_type:  The name of the event type
         :return: A dict representation of the event-type's data
         """
@@ -183,10 +183,10 @@ class Alooma(object):
         :param secret: a valid AWS secret key
         :param bucket: The bucket where the data resides
         :param prefix: An optional file path prefix. If supplied,
-        only files in paths matching the prefix will be pulled
+        only files in paths matching the prefix will be retrieved
         :param load_files: Can be either 'all' or 'new'. If 'new'
-        is selected, files from before than the input was creaded
-        will not be pulled. Default is 'all'.
+        is selected, files which were not created/updated since  the 
+        input was creaded will not be retrieved. Default is 'all'.
         :return: a requests.model.Response object representing the
         result of the create_input call
         """
