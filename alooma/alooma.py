@@ -854,9 +854,25 @@ def non_empty_datapoint_values(data):
     return []
 
 
-def table_structure_from_mapping(mapping):
+def table_structure_from_mapping(mapping, primary_keys=None,
+                                 sort_keys=None, dist_key=None):
+    """
+    Receives a mapping and extracts a table structure from it. This table
+    structure can then be used to create a new table using the create_table
+    method
+    :param primary_keys: A list of column names. If they exist in the
+    mapping, they will be marked as primary keys in the resulting structure.
+    :param sort_keys: A list of column names. If they exist in the
+    mapping, they will be marked as sort keys in the resulting structure
+    according to the order in the supplied list.
+    :param dist_key: A column name. If it exists in the mapping, it will be
+    marked as the distribution key in the resulting structure.
+    :param mapping: A valid mapping dict
+    :return: A valid table structure dict
+    """
     def extract_column(mapped_field):
         cols = []
+        sort_key_index = -1
         for subfield in mapped_field['fields']:
             cols.extend(extract_column(subfield))
         if 'mapping' in mapped_field and mapped_field['mapping'] and \
@@ -864,6 +880,14 @@ def table_structure_from_mapping(mapping):
             field_mapping = copy.deepcopy(mapped_field['mapping'])
             [field_mapping.pop(k) for k in field_mapping.keys()
                 if k not in ['columnName', 'columnType']]
+            col_name = field_mapping['columnName']
+            if primary_keys and col_name in primary_keys:
+                field_mapping['primaryKey'] = True
+            if sort_keys and col_name in sort_keys:
+                field_mapping['sortKeyIndex'] = sort_key_index
+                sort_key_index += 1
+            if dist_key and col_name == dist_key:
+                field_mapping['distKey'] = True
             field_mapping['columnType'].pop('truncate', None)
             cols.append(field_mapping)
         return cols
