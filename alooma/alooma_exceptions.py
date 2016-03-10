@@ -1,0 +1,2 @@
+class FailedToCreateInputException(Exception):
+    pass
