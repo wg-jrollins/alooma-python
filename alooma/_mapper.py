@@ -11,12 +11,12 @@ class _Mapper(object):
         self.__send_request = api._Alooma__send_request
 
     def get_mapping_mode(self):
-        url = self.__api.rest_url + 'mapping-mode'
+        url = self.__api._rest_url + 'mapping-mode'
         res = self.__send_request(requests.get, url)
         return res.content.replace('"', '')
 
     def set_mapping_mode(self, flexible):
-        url = self.__api.rest_url + 'mapping-mode'
+        url = self.__api._rest_url + 'mapping-mode'
         res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
                             **self.__api.requests_params)
         return res
@@ -52,19 +52,19 @@ class _Mapper(object):
 
     def delete_event_type(self, event_type):
         event_type = urllib.parse.quote(event_type, safe='')
-        url = self.__api.rest_url + 'event-types/{event_type}' \
+        url = self.__api._rest_url + 'event-types/{event_type}' \
             .format(event_type=event_type)
 
         self.__send_request(requests.delete, url)
 
     def get_event_types(self):
-        url = self.__api.rest_url + 'event-types'
+        url = self.__api._rest_url + 'event-types'
         res = self.__send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 
     def get_event_type(self, event_type):
         event_type = urllib.parse.quote(event_type, safe='')
-        url = self.__api.rest_url + 'event-types/' + event_type
+        url = self.__api._rest_url + 'event-types/' + event_type
 
         res = self.__send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
@@ -157,14 +157,14 @@ class _Mapper(object):
 
     def set_mapping(self, mapping, event_type):
         event_type = urllib.parse.quote(event_type, safe='')
-        url = self.__api.rest_url + 'event-types/{event_type}/mapping'.format(
+        url = self.__api._rest_url + 'event-types/{event_type}/mapping'.format(
                 event_type=event_type)
         res = self.__send_request(requests.post, url, json=mapping)
         return res
 
     # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
-        url = self.__api.rest_url + 'tables'
+        url = self.__api._rest_url + 'tables'
         res = self.__send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 

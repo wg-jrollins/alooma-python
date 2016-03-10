@@ -18,7 +18,7 @@ class _Structure(object):
                 if x['name'] == name and not x['deleted']]
 
     def get_structure(self):
-        url_get = self.__api.rest_url + 'plumbing/?resolution=1min'
+        url_get = self.__api._rest_url + 'plumbing/?resolution=1min'
         response = self.__send_request(requests.get, url_get)
         return alooma.parse_response_to_json(response)
 
@@ -60,7 +60,7 @@ class _Structure(object):
         previous_nodes = [x for x in structure['nodes']
                           if x['name'] == input_post_data['name']]
 
-        url = self.__api.rest_url + 'plumbing/nodes'
+        url = self.__api._rest_url + 'plumbing/nodes'
 
         self.__send_request(requests.post, url, json=input_post_data)
 
@@ -115,7 +115,7 @@ class _Structure(object):
         return None
 
     def get_plumbing(self):
-        url = self.__api.rest_url + "plumbing?resolution=30sec"
+        url = self.__api._rest_url + "plumbing?resolution=30sec"
         res = self.__send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 
@@ -154,7 +154,7 @@ class _Structure(object):
         :param input_id:    ID of the input whose sleep time to return
         :return:            sleep time of the input with ID input_id
         """
-        url = self.__api.rest_url + 'inputSleepTime/%s' % input_id
+        url = self.__api._rest_url + 'inputSleepTime/%s' % input_id
         res = requests.get(url, **self.__api.requests_params)
         return float(json.loads(res.content).get('inputSleepTime'))
 
@@ -164,6 +164,6 @@ class _Structure(object):
         :param sleep_time:  new sleep time to set for input with ID input_id
         :return:            result of the REST request
         """
-        url = self.__api.rest_url + 'inputSleepTime/%s' % input_id
+        url = self.__api._rest_url + 'inputSleepTime/%s' % input_id
         res = requests.put(url, str(sleep_time), **self.__api.requests_params)
         return res
