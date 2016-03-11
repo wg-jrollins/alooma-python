@@ -126,7 +126,7 @@ class Alooma(object):
     def get_mapping_mode(self):
         """
         Returns the default mapping mode currently set in the system.
-        The mapping mode shoild be one of the values in 
+        The mapping mode should be one of the values in 
         alooma.MAPPING_MODES
         """
         url = self.rest_url + 'mapping-mode'
