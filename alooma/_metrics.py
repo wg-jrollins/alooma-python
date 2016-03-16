@@ -62,7 +62,7 @@ class _Metrics(object):
         """
         Returns the number of events erred / unmapped / discarded / loaded in
         the last X minutes
-        :param minutes - number of minutes to check
+        :param minutes: number of minutes to check
         """
         response = self.get_metrics_by_names(['UNMAPPED_EVENTS',
                                               'IGNORED_EVENTS',
@@ -71,11 +71,26 @@ class _Metrics(object):
                                              minutes)
         return tuple([sum(non_empty_datapoint_values([r])) for r in response])
 
-    def get_restream_queue_metrics(self, minutes):
+    def get_restream_queue_metrics(self, minutes=120):
+        """
+        Returns the current number of events stored in the Restream Queue.
+        :param minutes: The number of minutes to go back in time to find the
+        number of events in the queue if the metric isn't available now for
+        some reason
+        :return: an int representing the amount of events in the Restream Queue
+        """
         response = self.get_metrics_by_names("EVENTS_IN_TRANSIT", minutes)
         return non_empty_datapoint_values(response)[0]
 
-    def get_incoming_events_count(self, minutes):
+    def get_incoming_events_count(self, minutes=120):
+        """
+        Returns the number of events waiting in the Incoming Queue to be
+        processed by Alooma.
+        :param minutes: The number of minutes to go back in time to find the
+        number of events in the queue if the metric isn't available now for
+        some reason
+        :return: an int representing the amount of events in the Incoming Queue
+        """
         response = self.get_metrics_by_names("INCOMING_EVENTS", minutes)
         return sum(non_empty_datapoint_values(response))
 

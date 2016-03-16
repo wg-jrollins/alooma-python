@@ -1,10 +1,11 @@
 import json
 import re
+import time
 
 import requests
-import time
-import alooma_exceptions
+
 import alooma
+import alooma_exceptions
 
 
 class _Structure(object):
@@ -16,11 +17,6 @@ class _Structure(object):
         structure = self.get_structure()
         return [x['stats']['throughput'] for x in structure['nodes']
                 if x['name'] == name and not x['deleted']]
-
-    def get_structure(self):
-        url_get = self.__api._rest_url + 'plumbing/?resolution=1min'
-        response = self.__send_request(requests.get, url_get)
-        return alooma.parse_response_to_json(response)
 
     def create_s3_input(self, name, key, secret, bucket, prefix,
                         load_files, transform_id):
@@ -114,10 +110,24 @@ class _Structure(object):
                 return node
         return None
 
+    def get_structure(self):
+        """
+        Returns a representation of all the inputs, outputs,
+        and on-stream processors currently configured in the system
+        :return: A dict representing the structure of the system
+        """
+        url_get = self.__api._rest_url + 'plumbing/?resolution=1min'
+        response = self.__send_request(requests.get, url_get)
+        return alooma.parse_response_to_json(response)
+
     def get_plumbing(self):
-        url = self.__api._rest_url + "plumbing?resolution=30sec"
-        res = self.__send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
+        """
+        DEPRECATED - use get_structure() instead.
+        Returns a representation of all the inputs, outputs,
+        and on-stream processors currently configured in the system
+        :return: A dict representing the structure of the system
+        """
+        return self.get_structure()
 
     def get_inputs(self, name=None, input_type=None, input_id=None):
         """

@@ -53,7 +53,7 @@ class _CodeEngine(object):
     
     def get_code(self):
         """
-        Returns the currently deployed code
+        Returns the currently deployed code from the Alooma Code Engine
         :return: A str representation of the deployed code
         """
         url = self.__api._rest_url + 'transform/functions/main'
@@ -67,7 +67,9 @@ class _CodeEngine(object):
     
     def set_code(self, code):
         """
-        Deploys the submitted code to the stream
+        Deploys the submitted code into the Alooma Code Engine. Once
+        deployed, the code will be applied to every event flowing
+        through the system
         :param code: A string representing valid Python code
         :return: a requests.model.Response object representing the
         result of the REST call

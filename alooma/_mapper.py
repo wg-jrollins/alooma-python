@@ -4,6 +4,8 @@ import requests
 
 import alooma
 
+MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
+
 
 class _Mapper(object):
     def __init__(self, api):
@@ -11,11 +13,20 @@ class _Mapper(object):
         self.__send_request = api._Alooma__send_request
 
     def get_mapping_mode(self):
+        """
+        Returns the default mapping mode currently set in the system.
+        The mapping mode should be one of the values in
+        alooma._mapper.MAPPING_MODES
+        """
         url = self.__api._rest_url + 'mapping-mode'
         res = self.__send_request(requests.get, url)
         return res.content.replace('"', '')
 
     def set_mapping_mode(self, flexible):
+        """
+        Sets the default mapping mode in the system. The mapping
+        mode should be one of the values in alooma._mapper.MAPPING_MODES
+        """
         url = self.__api._rest_url + 'mapping-mode'
         res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
                             **self.__api.requests_params)
@@ -58,11 +69,21 @@ class _Mapper(object):
         self.__send_request(requests.delete, url)
 
     def get_event_types(self):
+        """
+        Returns a dict representation of all the event-types which
+        exist in the system
+        """
         url = self.__api._rest_url + 'event-types'
         res = self.__send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 
     def get_event_type(self, event_type):
+        """
+        Returns a dict representation of the requested event-type's
+        mapping and metadata if it exists
+        :param event_type:  The name of the event type
+        :return: A dict representation of the event-type's data
+        """
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.__api._rest_url + 'event-types/' + event_type
 
@@ -70,6 +91,11 @@ class _Mapper(object):
         return alooma.parse_response_to_json(res)
 
     def discard_event_type(self, event_type):
+        """
+        Discards an event type in the Mapper, stopping it from being loaded
+        to Redshift or being stored in the Restream Queue
+        :param event_type: A str representing an existing event type
+        """
         event_type_json = {
             "name": event_type,
             "mapping": {
@@ -161,12 +187,6 @@ class _Mapper(object):
                 event_type=event_type)
         res = self.__send_request(requests.post, url, json=mapping)
         return res
-
-    # TODO standardize the responses (handling of error code etc)
-    def get_tables(self):
-        url = self.__api._rest_url + 'tables'
-        res = self.__send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
 
     @staticmethod
     def set_mapping_for_field(field, column_name,

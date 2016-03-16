@@ -18,12 +18,22 @@ class _Configurations(object):
         self.__send_request = api._Alooma__send_request
 
     def get_config(self):
+        """
+        Exports the entire system configuration in dict format.
+        This is also used periodically by Alooma for backup purposes,
+        :return: a dict representation of the system configuration
+        """
         url_get = self.__api._rest_url + 'config/export'
         response = self.__send_request(requests.get, url=url_get)
         config_export = alooma.parse_response_to_json(response)
         return config_export
 
     def clean_system(self):
+        """
+        USE CAREFULLY! This function deletes the state from the machine
+        and returns it to its factory settings. It usually should not
+        be used in production machines!
+        """
         self.__api.code_engine.set_code_to_default()
         self.__api.restream.clean_restream_queue()
         self.__api.structure.remove_all_inputs()

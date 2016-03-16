@@ -1,5 +1,6 @@
-import requests
 import time
+
+import requests
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 
@@ -9,10 +10,17 @@ class _Restream(object):
         self.__api = api
         self.__send_request = api._Alooma__send_request
 
-    def clean_restream_queue(self):
+    def clean_restream_queue(self, restore_mapping=False):
+        """
+        Clears all the events in the restream queue by discarding all the
+        event types in the system and initiating a restream
+        """
+        original_event_types = {}
         event_types = self.__api.mapper.get_event_types()
-        for event_type in event_types:
-            self.__api.mapper.discard_event_type(event_type["name"])
+        for event_type_name, event_type in event_types.iteritems():
+            if restore_mapping and event_type['state'] != 'UNMAPPED':
+                original_event_types[event_type_name] = event_type
+            self.__api.mapper.discard_event_type(event_type_name)
 
         self.start_restream()
         queue_depth = self.get_restream_queue_size()
@@ -20,7 +28,15 @@ class _Restream(object):
             queue_depth = self.get_restream_queue_size()
             time.sleep(1)
 
+        if restore_mapping:
+            for event_type_name, mapping in original_event_types.iteritems():
+                self.__api.mapper.set_mapping(event_type_name, mapping)
+
     def start_restream(self):
+        """
+        Starts a Restream, streaming data from the Restream Queue
+        to the pipeline for processing
+        """
         restream_node = self.__api._get_node_by(
                 'type', RESTREAM_QUEUE_TYPE_NAME)
 
@@ -46,6 +62,10 @@ class _Restream(object):
                     restream_type=RESTREAM_QUEUE_TYPE_NAME))
 
     def get_restream_queue_size(self):
+        """
+        Returns the number of events currently held in the Restream Queue
+        :return: an int representing the number of events in the queue
+        """
         restream_node = self.__api._get_node_by(
                 "type", RESTREAM_QUEUE_TYPE_NAME)
         return restream_node["stats"]["availbleForRestream"]

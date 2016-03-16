@@ -38,6 +38,16 @@ class _Redshift(object):
             return redshift_node['configuration']
         return None
 
+    def get_tables(self):
+        """
+        Returns a list of the tables in the configured database and schema.
+        The list contains the table names and the entire column structure
+        including types and constraints
+        """
+        url = self.__api._rest_url + 'tables'
+        res = self.__send_request(requests.get, url)
+        return alooma.parse_response_to_json(res)
+
     def create_table(self, table_name, columns):
         """
         :param table_name: self descriptive

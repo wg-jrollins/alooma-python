@@ -3,13 +3,13 @@ import json
 import requests
 
 import _code_engine
+import _configurations
 import _mapper
 import _metrics
 import _notifications
-import _configurations
+import _redshift
 import _restream
 import _structure
-import _redshift
 
 EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
 
@@ -17,6 +17,11 @@ DEFAULT_ENCODING = 'utf-8'
 
 
 class Alooma(object):
+    """
+    A Python implementation wrapping the Alooma REST API. This API
+    provides utility functions allowing a user to perform any action
+    the Alooma UI permits, and more.
+    """
     def __init__(self, hostname, username, password, port=8443,
                  server_prefix=''):
 
@@ -28,9 +33,6 @@ class Alooma(object):
         self._password = password
         self._requests_params = None
         self._cookie = None
-        self.__login()
-        if not self._cookie:
-            raise Exception('Failed to obtain cookie')
 
         self.mapper = _mapper._Mapper(self)
         self.code_engine = _code_engine._CodeEngine(self)
@@ -42,6 +44,21 @@ class Alooma(object):
         self.configurations = _configurations._Configurations(self)
 
     def __send_request(self, func, url, is_recheck=False, **kwargs):
+        """
+        Wraps REST requests to Alooma. This function ensures we are logged in
+         and that all params exist, and catches any exceptions.
+        :param func: a method from the requests package, i.e. requests.get()
+        :param url: The destination URL for the REST request
+        :param is_recheck: If this is a second try after losing a login
+        :param kwargs: Additional arguments to pass to the wrapped function
+        :return: The requests.model.Response object returned by the wrapped
+        function
+        """
+        if not self._cookie:
+            self.__login()
+        if not self._cookie:
+            raise Exception('Failed to obtain cookie')
+
         params = self._requests_params.copy()
         params.update(kwargs)
         response = func(url, **params)
