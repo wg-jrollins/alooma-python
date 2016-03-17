@@ -1,6 +1,8 @@
-import urllib
+import copy
+import json
 
 import requests
+from six.moves import urllib
 
 import alooma
 
@@ -36,6 +38,31 @@ class _Mapper(object):
         event_type = self.__api.get_event_type(event_type)
         mapping = self.__api.remove_stats(event_type)
         return mapping
+
+    def auto_map(self, event_type, table_name=None, prefix=None,
+                 create_table_if_missing=False):
+        """
+        Automaps an event type to a table in your Redshift. If a table name
+        is not supplied, defaults to using the event_type as a table name.
+        :param event_type: The event type to map
+        :param table_name: The table in Redshift to map the event type to
+        :param prefix: Adds a prefix to the table name (i.e. for event type
+        "ex" and prefix "Pre", will create the table "pre_ex".
+        :param create_table_if_missing: If True, will create the table if it
+        doesn't exist
+        """
+        table_name = table_name if table_name else event_type.lower()
+        if prefix:
+            table_name = '%s_%s' % (prefix.lower(), table_name)
+        quoted_type = urllib.parse.quote(event_type)
+        url = '%s/event-types/%s/auto-map' % (self.__api._rest_url, quoted_type)
+        auto_map = json.loads(self.__send_request(requests.post, url).content)
+        auto_map['mapping']['tableName'] = \
+            table_name if table_name else event_type
+        auto_map['state'] = 'MAPPED'
+        res = self.set_mapping(auto_map, event_type,
+                               create_table_if_missing=create_table_if_missing)
+        return res
 
     def map_field(self, schema, field_path, column_name, field_type, non_null,
                   **type_attributes):
@@ -181,7 +208,55 @@ class _Mapper(object):
             # field["fieldName"] == field_to_find
             raise Exception("Could not find field path")
 
-    def set_mapping(self, mapping, event_type):
+    def set_mapping(self, mapping, event_type, create_table_if_missing=False):
+        """
+        Maps an event type to a table in Redshift.
+        :param mapping: The mapping to submit
+        :param event_type: The name of the event type to map
+        :param create_table_if_missing: If True, the table will be created if
+        it doesn't exist already
+        Mapping example:
+          {u'fieldName': u'type',
+           u'fields': [],
+           u'mapping': {
+            u'columnName': u'type',
+            u'columnType': {
+             u'length': 256,
+             u'nonNull': False,
+             u'truncate': False,
+             u'type': u'VARCHAR'},
+            u'isDiscarded': False,
+            u'machineGenerated': False}},
+          {u'fieldName': u'id',
+           u'fields': [],
+           u'mapping': {
+            u'columnName': u'id',
+            u'columnType': {u'nonNull': False, u'type': u'FLOAT'},
+            u'isDiscarded': False,
+            u'machineGenerated': False}},
+          {u'fieldName': u'timestamp',
+           u'fields': [],
+           u'mapping': {
+            u'columnName': u'timestamp',
+            u'columnType': {u'nonNull': False, u'type': u'TIMESTAMP'},
+            u'isDiscarded': False,
+            u'machineGenerated': False}}],
+         u'mapping': {
+          u'isDiscarded': False,
+          u'readOnly': False,
+          u'tableName': u'a_table_name'},
+         u'mappingMode': u'STRICT',
+         u'name': u'event_type_name',
+         u'state': u'MAPPED',
+         u'usingDefaultMappingMode': True}
+        """
+        table_name = mapping['mapping']['tableName']
+        if create_table_if_missing:
+            table = [t['tableName'] for t in self.__api.redshift.get_tables()
+                     if t['tableName'] == table_name]
+            if not table:
+                self.__api.redshift.create_table(table_name, _table_structure_from_mapping(mapping))
+
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.__api._rest_url + 'event-types/{event_type}/mapping'.format(
                 event_type=event_type)
@@ -208,3 +283,44 @@ class _Mapper(object):
         }
         parent_field["fields"].append(field)
         return field
+
+
+def _table_structure_from_mapping(mapping, primary_keys=None,
+                                  sort_keys=None, dist_key=None):
+    """
+    Receives a mapping and extracts a table structure from it. This table
+    structure can then be used to create a new table using the create_table
+    method
+    :param primary_keys: A list of column names. If they exist in the
+    mapping, they will be marked as primary keys in the resulting structure.
+    :param sort_keys: A list of column names. If they exist in the
+    mapping, they will be marked as sort keys in the resulting structure
+    according to the order in the supplied list.
+    :param dist_key: A column name. If it exists in the mapping, it will be
+    marked as the distribution key in the resulting structure.
+    :param mapping: A valid mapping dict
+    :return: A valid table structure dict
+    """
+    def extract_column(mapped_field):
+        cols = []
+        sort_key_index = 0
+        for subfield in mapped_field['fields']:
+            cols.extend(extract_column(subfield))
+        if 'mapping' in mapped_field and mapped_field['mapping'] and \
+                not mapped_field['mapping']['isDiscarded']:
+            field_mapping = copy.deepcopy(mapped_field['mapping'])
+            [field_mapping.pop(k) for k in field_mapping.keys()
+             if k not in ['columnName', 'columnType']]
+            col_name = field_mapping['columnName']
+            if primary_keys and col_name in primary_keys:
+                field_mapping['primaryKey'] = True
+            if sort_keys and col_name in sort_keys:
+                field_mapping['sortKeyIndex'] = sort_key_index
+                sort_key_index += 1
+            if dist_key and col_name == dist_key:
+                field_mapping['distKey'] = True
+            field_mapping['columnType'].pop('truncate', None)
+            cols.append(field_mapping)
+        return cols
+
+    return extract_column({'fields': mapping['fields']})

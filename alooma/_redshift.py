@@ -27,7 +27,7 @@ class _Redshift(object):
             'type': 'REDSHIFT',
             'deleted': False
         }
-        url = self.__api.rest_url + 'plumbing/nodes/'+redshift_node['id']
+        url = self.__api._rest_url + 'plumbing/nodes/'+redshift_node['id']
 
         res = self.__api.__send_request(requests.put, url, json=payload)
         return alooma.parse_response_to_json(res)
@@ -67,7 +67,7 @@ class _Redshift(object):
         }
         ]
         """
-        url = self.__api.rest_url + 'tables/' + table_name
+        url = self.__api._rest_url + 'tables/' + table_name
 
         res = self.__send_request(requests.post, url, json=columns)
 
@@ -92,7 +92,7 @@ class _Redshift(object):
         }
         ]
         """
-        url = self.__api.rest_url + 'tables/' + table_name
+        url = self.__api._rest_url + 'tables/' + table_name
 
         res = self.__api.__send_request(requests.put, url, json=columns)
 
