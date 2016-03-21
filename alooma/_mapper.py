@@ -1,6 +1,7 @@
 import copy
 import json
 
+import re
 import requests
 from six.moves import urllib
 
@@ -95,14 +96,47 @@ class _Mapper(object):
 
         self.__send_request(requests.delete, url)
 
-    def get_event_types(self):
+    def get_event_types(self, input_name_filter=None, input_type_filter=None):
         """
         Returns a dict representation of all the event-types which
-        exist in the system
+        exist in the system, optionally filtered by input name or
+        input type
+        :param input_name_filter: A str representing the name of an existing
+         input or a regex
+        :param input_type_filter: A str representing an input type (e.g. mysql)
+        :return: All the event types existing in the system, optionally
+        filtered by source input name or type
         """
         url = self.__api._rest_url + 'event-types'
         res = self.__send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
+        input_name = re.compile(input_name_filter.lower()) \
+            if input_name_filter else None
+        event_types = alooma.parse_response_to_json(res)
+        result = []
+        if not (input_name_filter or input_type_filter):
+            return event_types
+
+        for et_name in [et['name'] for et in event_types]:
+            et = self.get_event_type(et_name)
+            metadata_fields = [f for f in et['fields']
+                               if f['fieldName'] == '_metadata']
+            if not metadata_fields:
+                continue
+            metadata = metadata_fields[0]
+            if input_name_filter:
+                input_label = [f for f in metadata['fields']
+                               if f['fieldName'] == 'input_label'][0]
+                label = input_label['stats']['stringStats'][
+                    'sample'][0]['value']
+                if not input_name.match(label.lower()):
+                    continue
+            if input_type_filter:
+                input_type = [f for f in metadata['fields']
+                              if f['fieldName'] == 'input_type'][0]
+                if input_type_filter.lower() != input_type.lower():
+                    continue
+            result.append(et)
+        return result
 
     def get_event_type(self, event_type):
         """
@@ -301,6 +335,7 @@ def _table_structure_from_mapping(mapping, primary_keys=None,
     :param mapping: A valid mapping dict
     :return: A valid table structure dict
     """
+
     def extract_column(mapped_field):
         cols = []
         sort_key_index = 0
