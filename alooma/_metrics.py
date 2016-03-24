@@ -27,7 +27,6 @@ METRICS_LIST = [
 class _Metrics(object):
     def __init__(self, api):
         self.__api = api
-        self.__send_request = api._Alooma__send_request
 
     def get_metrics_by_names(self, metric_names, minutes):
         if type(metric_names) != list and type(metric_names) == str:
@@ -45,7 +44,7 @@ class _Metrics(object):
         metrics_string = ",".join(metric_names)
         url = self.__api._rest_url + 'metrics?metrics=%s&from=-%dmin&resolution=%dmin' \
                                      '' % (metrics_string, minutes, minutes)
-        res = self.__send_request(requests.get, url)
+        res = self.__api._send_request(requests.get, url)
 
         response = alooma.parse_response_to_json(res)
         return response

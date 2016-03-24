@@ -10,8 +10,7 @@ DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
 class _CodeEngine(object):
     def __init__(self, api):
         self.__api = api
-        self.__send_request = api._Alooma__send_request
-        
+
     def get_samples_status_codes(self):
         """
         :return:    a list of status codes each event in Alooma may be tagged
@@ -58,11 +57,11 @@ class _CodeEngine(object):
         """
         url = self.__api._rest_url + 'transform/functions/main'
         try:
-            res = self.__send_request(requests.get, url)
+            res = self.__api._send_request(requests.get, url)
             return alooma.parse_response_to_json(res)["code"]
         except:
             defaults_url = self.__api._rest_url + 'transform/defaults'
-            res = self.__send_request(requests.get, defaults_url)
+            res = self.__api._send_request(requests.get, defaults_url)
             return alooma.parse_response_to_json(res)["PYTHON"]
     
     def set_code(self, code):
@@ -77,7 +76,7 @@ class _CodeEngine(object):
         data = {'language': 'PYTHON', 'code': code,
                 'functionName': 'main'}
         url = self.__api._rest_url + 'transform/functions/main'
-        res = self.__send_request(requests.post, url, json=data)
+        res = self.__api._send_request(requests.post, url, json=data)
         return res
 
     def set_code_to_default(self):

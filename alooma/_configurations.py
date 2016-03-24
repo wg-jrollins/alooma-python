@@ -15,7 +15,6 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 class _Configurations(object):
     def __init__(self, api):
         self.__api = api
-        self.__send_request = api._Alooma__send_request
 
     def get_config(self):
         """
@@ -24,7 +23,7 @@ class _Configurations(object):
         :return: a dict representation of the system configuration
         """
         url_get = self.__api._rest_url + 'config/export'
-        response = self.__send_request(requests.get, url=url_get)
+        response = self.__api._send_request(requests.get, url=url_get)
         config_export = alooma.parse_response_to_json(response)
         return config_export
 
@@ -45,15 +44,15 @@ class _Configurations(object):
     def get_users(self):
         url = self.__api._rest_url + 'users/'
 
-        res = self.__send_request(requests.get, url)
+        res = self.__api._send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 
     def get_settings(self):
         url = self.__api._rest_url + 'settings/'
 
-        res = self.__send_request(requests.get, url)
+        res = self.__api._send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 
     def delete_s3_retention(self):
         url = self.__api._rest_url + "settings/s3-retention"
-        self.__send_request(requests.delete, url)
+        self.__api._send_request(requests.delete, url)

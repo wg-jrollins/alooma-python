@@ -13,7 +13,6 @@ MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
 class _Mapper(object):
     def __init__(self, api):
         self.__api = api
-        self.__send_request = api._Alooma__send_request
 
     def get_mapping_mode(self):
         """
@@ -22,7 +21,7 @@ class _Mapper(object):
         alooma._mapper.MAPPING_MODES
         """
         url = self.__api._rest_url + 'mapping-mode'
-        res = self.__send_request(requests.get, url)
+        res = self.__api._send_request(requests.get, url)
         return res.content.replace('"', '')
 
     def set_mapping_mode(self, flexible):
@@ -57,7 +56,7 @@ class _Mapper(object):
             table_name = '%s_%s' % (prefix.lower(), table_name)
         quoted_type = urllib.parse.quote(event_type)
         url = '%s/event-types/%s/auto-map' % (self.__api._rest_url, quoted_type)
-        auto_map = json.loads(self.__send_request(requests.post, url).content)
+        auto_map = json.loads(self.__api._send_request(requests.post, url).content)
         auto_map['mapping']['tableName'] = \
             table_name if table_name else event_type
         auto_map['state'] = 'MAPPED'
@@ -80,7 +79,7 @@ class _Mapper(object):
         :return: new mapping dict with new argument
         """
 
-        field = self.__api.find_field_name(schema, field_path, True)
+        field = self.__api.get_field_in_schema(schema, field_path, True)
         self.__api.set_mapping_for_field(field, column_name, field_type,
                                          non_null, **type_attributes)
 
@@ -94,7 +93,7 @@ class _Mapper(object):
         url = self.__api._rest_url + 'event-types/{event_type}' \
             .format(event_type=event_type)
 
-        self.__send_request(requests.delete, url)
+        self.__api._send_request(requests.delete, url)
 
     def get_event_types(self, input_name_filter=None, input_type_filter=None):
         """
@@ -108,7 +107,7 @@ class _Mapper(object):
         filtered by source input name or type
         """
         url = self.__api._rest_url + 'event-types'
-        res = self.__send_request(requests.get, url)
+        res = self.__api._send_request(requests.get, url)
         input_name = re.compile(input_name_filter.lower()) \
             if input_name_filter else None
         event_types = alooma.parse_response_to_json(res)
@@ -148,7 +147,7 @@ class _Mapper(object):
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.__api._rest_url + 'event-types/' + event_type
 
-        res = self.__send_request(requests.get, url)
+        res = self.__api._send_request(requests.get, url)
         return alooma.parse_response_to_json(res)
 
     def discard_event_type(self, event_type):
@@ -183,7 +182,7 @@ class _Mapper(object):
                             field that would be discarded
         """
 
-        field = self.find_field_name(mapping, field_path)
+        field = self.get_field_in_schema(mapping, field_path)
         if field:
             field["mapping"]["isDiscarded"] = True
             field["mapping"]["columnName"] = ""
@@ -204,19 +203,28 @@ class _Mapper(object):
                         3.  then the mapping would be as the old but the "c"
                             field that would be removed -> {"a":1, b:{}}
         """
-        field = self.find_field_name(mapping, field_path)
+        field = self.get_field_in_schema(mapping, field_path)
         if field:
             mapping["fields"].remove(field)
 
-    def find_field_name(self, schema, field_path, add_if_missing=False):
+    def get_field_in_schema(self, schema, field_path, create_if_missing=False):
         """
-        :param schema:  this is the dict that this method run over ot
-                        recursively
-        :param field_path: this would use us to find the keys
-        :param add_if_missing: add the field if missing
-        :return:    the field that we wanna find and to do on it some changes.
-                    if the field is not found then raise exception
+        Extracts a field from a dict representing a valid mapping of table
+        structure, allowing to edit it in-place.
+        :param schema: a dict representing a mapping or a table schema
+        :param field_path: the path to the field. For a field in the root
+        of the schema, this is the field name. If the field is neseted,
+        each level of nesting should be separated using a dot. I.E.
+        '_metadata.input_label' will return the 'input_label' field nested
+        under the '_metadata' field.
+        :param create_if_missing: add the field if missing
+        :return: A dict representing the field if it exists, otherwise
+        raises an exception
         """
+        field_path_parts = field_path.split('.')
+        if not field_path_parts:
+            raise Exception('Empty field path')
+
 
         fields_list = field_path.split('.', 1)
         if not fields_list:
@@ -230,8 +238,8 @@ class _Mapper(object):
         if field:
             if not remaining_path:
                 return field
-            return self.__api.find_field_name(field, remaining_path[0])
-        elif add_if_missing:
+            return self.__api.get_field_in_schema(field, remaining_path[0])
+        elif create_if_missing:
             parent_field = schema
             for field in fields_list:
                 parent_field = self.__api.add_field(parent_field, field)
@@ -294,7 +302,7 @@ class _Mapper(object):
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.__api._rest_url + 'event-types/{event_type}/mapping'.format(
                 event_type=event_type)
-        res = self.__send_request(requests.post, url, json=mapping)
+        res = self.__api._send_request(requests.post, url, json=mapping)
         return res
 
     @staticmethod

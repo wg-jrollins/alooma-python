@@ -8,7 +8,6 @@ RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 class _Restream(object):
     def __init__(self, api):
         self.__api = api
-        self.__send_request = api._Alooma__send_request
 
     def clean_restream_queue(self, restore_mapping=False):
         """
@@ -55,7 +54,7 @@ class _Restream(object):
                 "deleted": False,
                 "state": None
             }
-            self.__send_request(requests.put, url,
+            self.__api._send_request(requests.put, url,
                                 json=restream_click_button_json)
         else:
             raise Exception("Could not find '{restream_type}' type".format(

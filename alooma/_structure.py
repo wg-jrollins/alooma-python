@@ -11,7 +11,6 @@ import alooma_exceptions
 class _Structure(object):
     def __init__(self, api):
         self.__api = api
-        self.__send_request = api._Alooma__send_request
 
     def get_throughput_by_name(self, name):
         structure = self.get_structure()
@@ -58,7 +57,7 @@ class _Structure(object):
 
         url = self.__api._rest_url + 'plumbing/nodes'
 
-        self.__send_request(requests.post, url, json=input_post_data)
+        self.__api._send_request(requests.post, url, json=input_post_data)
 
         new_id = None
         retries_left = 10
@@ -93,7 +92,7 @@ class _Structure(object):
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
                 rest_url=self.__api._rest_url, input_id=input_id)
-        self.__send_request(requests.post, url)
+        self.__api._send_request(requests.post, url)
 
     def _get_node_by(self, field, value):
         """
@@ -117,7 +116,7 @@ class _Structure(object):
         :return: A dict representing the structure of the system
         """
         url_get = self.__api._rest_url + 'plumbing/?resolution=1min'
-        response = self.__send_request(requests.get, url_get)
+        response = self.__api._send_request(requests.get, url_get)
         return alooma.parse_response_to_json(response)
 
     def get_plumbing(self):

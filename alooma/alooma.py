@@ -43,7 +43,7 @@ class Alooma(object):
         self.metrics = _metrics._Metrics(self)
         self.configurations = _configurations._Configurations(self)
 
-    def __send_request(self, func, url, is_recheck=False, **kwargs):
+    def _send_request(self, func, url, is_recheck=False, **kwargs):
         """
         Wraps REST requests to Alooma. This function ensures we are logged in
          and that all params exist, and catches any exceptions.
@@ -69,7 +69,7 @@ class Alooma(object):
         if response.status_code == 401 and not is_recheck:
             self.__login()
 
-            return self.__send_request(func, url, True, **kwargs)
+            return self._send_request(func, url, True, **kwargs)
 
         raise Exception("The rest call to {url} failed: {error_message}".format(
                 url=response.url, error_message=response.reason))
