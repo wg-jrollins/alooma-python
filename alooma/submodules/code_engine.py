@@ -62,7 +62,7 @@ class _CodeEngine(object):
             res = self.__api._send_request(requests.get, defaults_url)
             return self.__api._parse_response_to_json(res)["PYTHON"]
     
-    def set_code(self, code):
+    def deploy_code(self, code):
         """
         Deploys the submitted code into the Alooma Code Engine. Once
         deployed, the code will be applied to every event flowing
@@ -77,9 +77,13 @@ class _CodeEngine(object):
         res = self.__api._send_request(requests.post, url, json=data)
         return res
 
-    def set_code_to_default(self):
+    def deploy_default_code(self):
+        """
+        Deploys the default code to the Code Engine, which makes it return
+        events without transforming them.
+        """
         code = DEFAULT_TRANSFORM_CODE
-        self.set_code(code=code)
+        self.deploy_code(code=code)
     
     def test_transform(self, sample, temp_transform=None):
         """

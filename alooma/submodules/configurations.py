@@ -31,7 +31,7 @@ class _Configurations(object):
         and returns it to its factory settings. It usually should not
         be used in production machines!
         """
-        self.__api.code_engine.set_code_to_default()
+        self.__api.code_engine.deploy_default_code()
         self.__api.restream.clean_restream_queue()
         self.__api.structure.remove_all_inputs()
         self.__api.mapper.delete_all_event_types()
