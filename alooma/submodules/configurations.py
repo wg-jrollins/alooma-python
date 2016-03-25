@@ -1,7 +1,5 @@
 import requests
 
-import alooma
-
 DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
     "digestInfo": True,
     "digestWarning": True,
@@ -24,7 +22,7 @@ class _Configurations(object):
         """
         url_get = self.__api._rest_url + 'config/export'
         response = self.__api._send_request(requests.get, url=url_get)
-        config_export = alooma.parse_response_to_json(response)
+        config_export = self.__api._parse_response_to_json(response)
         return config_export
 
     def clean_system(self):
@@ -45,14 +43,16 @@ class _Configurations(object):
         url = self.__api._rest_url + 'users/'
 
         res = self.__api._send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
+        return self.__api._parse_response_to_json(res)
 
     def get_settings(self):
         url = self.__api._rest_url + 'settings/'
 
         res = self.__api._send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
+        return self.__api._parse_response_to_json(res)
 
     def delete_s3_retention(self):
         url = self.__api._rest_url + "settings/s3-retention"
         self.__api._send_request(requests.delete, url)
+
+SUBMODULE_CLASS = _Configurations

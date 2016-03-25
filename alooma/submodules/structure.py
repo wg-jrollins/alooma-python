@@ -4,7 +4,6 @@ import time
 
 import requests
 
-import alooma
 import alooma_exceptions
 
 
@@ -117,7 +116,7 @@ class _Structure(object):
         """
         url_get = self.__api._rest_url + 'plumbing/?resolution=1min'
         response = self.__api._send_request(requests.get, url_get)
-        return alooma.parse_response_to_json(response)
+        return self.__api._parse_response_to_json(response)
 
     def get_plumbing(self):
         """
@@ -176,3 +175,5 @@ class _Structure(object):
         url = self.__api._rest_url + 'inputSleepTime/%s' % input_id
         res = requests.put(url, str(sleep_time), **self.__api.requests_params)
         return res
+
+SUBMODULE_CLASS = _Structure

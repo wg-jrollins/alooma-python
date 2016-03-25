@@ -5,8 +5,6 @@ import re
 import requests
 from six.moves import urllib
 
-import alooma
-
 MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
 
 
@@ -36,7 +34,7 @@ class _Mapper(object):
 
     def get_mapping(self, event_type):
         event_type = self.__api.get_event_type(event_type)
-        mapping = self.__api.remove_stats(event_type)
+        mapping = remove_stats(event_type)
         return mapping
 
     def auto_map(self, event_type, table_name=None, prefix=None,
@@ -110,7 +108,7 @@ class _Mapper(object):
         res = self.__api._send_request(requests.get, url)
         input_name = re.compile(input_name_filter.lower()) \
             if input_name_filter else None
-        event_types = alooma.parse_response_to_json(res)
+        event_types = self.__api._parse_response_to_json(res)
         result = []
         if not (input_name_filter or input_type_filter):
             return event_types
@@ -148,7 +146,7 @@ class _Mapper(object):
         url = self.__api._rest_url + 'event-types/' + event_type
 
         res = self.__api._send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
+        return self.__api._parse_response_to_json(res)
 
     def discard_event_type(self, event_type):
         """
@@ -367,3 +365,20 @@ def _table_structure_from_mapping(mapping, primary_keys=None,
         return cols
 
     return extract_column({'fields': mapping['fields']})
+
+
+def remove_stats(mapping):
+    """
+    Strips the stats off of a mapping object
+    :param mapping: A dict representing a valid mapping
+    :return: The original mapping without any 'stats' fields
+    """
+    if 'stats' in mapping:
+        del mapping['stats']
+
+    if mapping['fields']:
+        for index, field in enumerate(mapping['fields']):
+            mapping['fields'][index] = remove_stats(field)
+    return mapping
+
+SUBMODULE_CLASS = _Mapper

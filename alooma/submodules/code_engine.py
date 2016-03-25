@@ -2,8 +2,6 @@ import json
 
 import requests
 
-import alooma
-
 DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
 
 
@@ -58,11 +56,11 @@ class _CodeEngine(object):
         url = self.__api._rest_url + 'transform/functions/main'
         try:
             res = self.__api._send_request(requests.get, url)
-            return alooma.parse_response_to_json(res)["code"]
+            return self.__api._parse_response_to_json(res)["code"]
         except:
             defaults_url = self.__api._rest_url + 'transform/defaults'
             res = self.__api._send_request(requests.get, defaults_url)
-            return alooma.parse_response_to_json(res)["PYTHON"]
+            return self.__api._parse_response_to_json(res)["PYTHON"]
     
     def set_code(self, code):
         """
@@ -135,3 +133,5 @@ class _CodeEngine(object):
                                                           curr_transform)
                         results.append(s)
         return results
+
+SUBMODULE_CLASS = _CodeEngine

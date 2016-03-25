@@ -1,7 +1,5 @@
 import requests
 
-import alooma
-
 METRICS_LIST = [
     'EVENT_SIZE_AVG',
     'EVENT_SIZE_TOTAL',
@@ -46,7 +44,7 @@ class _Metrics(object):
                                      '' % (metrics_string, minutes, minutes)
         res = self.__api._send_request(requests.get, url)
 
-        response = alooma.parse_response_to_json(res)
+        response = self.__api._parse_response_to_json(res)
         return response
 
     def get_incoming_queue_metric(self, minutes):
@@ -122,3 +120,5 @@ def non_empty_datapoint_values(data):
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
     return []
+
+SUBMODULE_CLASS = _Metrics

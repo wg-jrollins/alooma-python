@@ -1,7 +1,5 @@
 import requests
 
-import alooma
-
 
 class _Redshift(object):
     def __init__(self, api):
@@ -29,7 +27,7 @@ class _Redshift(object):
         url = self.__api._rest_url + 'plumbing/nodes/'+redshift_node['id']
 
         res = self.__api._send_request(requests.put, url, json=payload)
-        return alooma.parse_response_to_json(res)
+        return self.__api._parse_response_to_json(res)
 
     def get_redshift_config(self):
         redshift_node = self.__api.structure.get_redshift_node()
@@ -45,7 +43,7 @@ class _Redshift(object):
         """
         url = self.__api._rest_url + 'tables'
         res = self.__api._send_request(requests.get, url)
-        return alooma.parse_response_to_json(res)
+        return self.__api._parse_response_to_json(res)
 
     def create_table(self, table_name, columns):
         """
@@ -70,7 +68,7 @@ class _Redshift(object):
 
         res = self.__api._send_request(requests.post, url, json=columns)
 
-        return alooma.parse_response_to_json(res)
+        return self.__api._parse_response_to_json(res)
 
     def alter_table(self, table_name, columns):
         """
@@ -96,3 +94,5 @@ class _Redshift(object):
         res = self.__api._send_request(requests.put, url, json=columns)
 
         return res
+
+SUBMODULE_CLASS = _Redshift
