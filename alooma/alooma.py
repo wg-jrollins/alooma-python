@@ -86,7 +86,7 @@ class Alooma(object):
             return self._send_request(func, url, True, **kwargs)
 
         raise Exception("The rest call to {url} failed: {error_message}".format(
-                url=response.url, error_message=response.reason))
+                url=response.url, error_message=response.content))
 
     def __login(self):
         """
