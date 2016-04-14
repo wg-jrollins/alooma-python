@@ -33,7 +33,7 @@ class _Mapper(object):
         return res
 
     def get_mapping(self, event_type):
-        event_type = self.__api.get_event_type(event_type)
+        event_type = self.get_event_type(event_type)
         mapping = remove_stats(event_type)
         return mapping
 
@@ -77,7 +77,7 @@ class _Mapper(object):
         :return: new mapping dict with new argument
         """
 
-        field = self.__api.get_field_in_schema(schema, field_path, True)
+        field = self.get_field_in_schema(schema, field_path, True)
         self.__api.set_mapping_for_field(field, column_name, field_type,
                                          non_null, **type_attributes)
 
@@ -129,7 +129,8 @@ class _Mapper(object):
                     continue
             if input_type_filter:
                 input_type = [f for f in metadata['fields']
-                              if f['fieldName'] == 'input_type'][0]
+                              if f['fieldName'] == 'input_type'][0]['stats'] \
+                                  ['stringStats']['sample'][0]['value']
                 if input_type_filter.lower() != input_type.lower():
                     continue
             result.append(et)
@@ -236,7 +237,7 @@ class _Mapper(object):
         if field:
             if not remaining_path:
                 return field
-            return self.__api.get_field_in_schema(field, remaining_path[0])
+            return self.get_field_in_schema(field, remaining_path[0])
         elif create_if_missing:
             parent_field = schema
             for field in fields_list:
@@ -295,7 +296,8 @@ class _Mapper(object):
             table = [t['tableName'] for t in self.__api.redshift.get_tables()
                      if t['tableName'] == table_name]
             if not table:
-                self.__api.redshift.create_table(table_name, _table_structure_from_mapping(mapping))
+                self.__api.redshift.create_table(
+                        table_name, self.table_structure_from_mapping(mapping))
 
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.__api._rest_url + 'event-types/{event_type}/mapping'.format(
@@ -324,47 +326,47 @@ class _Mapper(object):
         parent_field["fields"].append(field)
         return field
 
+    @staticmethod
+    def table_structure_from_mapping(mapping, primary_keys=None,
+                                     sort_keys=None, dist_key=None):
+        """
+        Receives a mapping and extracts a table structure from it. This table
+        structure can then be used to create a new table using the create_table
+        method
+        :param primary_keys: A list of column names. If they exist in the
+        mapping, they will be marked as primary keys in the resulting structure.
+        :param sort_keys: A list of column names. If they exist in the
+        mapping, they will be marked as sort keys in the resulting structure
+        according to the order in the supplied list.
+        :param dist_key: A column name. If it exists in the mapping, it will be
+        marked as the distribution key in the resulting structure.
+        :param mapping: A valid mapping dict
+        :return: A valid table structure dict
+        """
 
-def _table_structure_from_mapping(mapping, primary_keys=None,
-                                  sort_keys=None, dist_key=None):
-    """
-    Receives a mapping and extracts a table structure from it. This table
-    structure can then be used to create a new table using the create_table
-    method
-    :param primary_keys: A list of column names. If they exist in the
-    mapping, they will be marked as primary keys in the resulting structure.
-    :param sort_keys: A list of column names. If they exist in the
-    mapping, they will be marked as sort keys in the resulting structure
-    according to the order in the supplied list.
-    :param dist_key: A column name. If it exists in the mapping, it will be
-    marked as the distribution key in the resulting structure.
-    :param mapping: A valid mapping dict
-    :return: A valid table structure dict
-    """
+        def extract_column(mapped_field):
+            cols = []
+            sort_key_index = 0
+            for subfield in mapped_field['fields']:
+                cols.extend(extract_column(subfield))
+            if 'mapping' in mapped_field and mapped_field['mapping'] and \
+                    not mapped_field['mapping']['isDiscarded']:
+                field_mapping = copy.deepcopy(mapped_field['mapping'])
+                [field_mapping.pop(k) for k in field_mapping.keys()
+                 if k not in ['columnName', 'columnType']]
+                col_name = field_mapping['columnName']
+                if primary_keys and col_name in primary_keys:
+                    field_mapping['primaryKey'] = True
+                if sort_keys and col_name in sort_keys:
+                    field_mapping['sortKeyIndex'] = sort_key_index
+                    sort_key_index += 1
+                if dist_key and col_name == dist_key:
+                    field_mapping['distKey'] = True
+                field_mapping['columnType'].pop('truncate', None)
+                cols.append(field_mapping)
+            return cols
 
-    def extract_column(mapped_field):
-        cols = []
-        sort_key_index = 0
-        for subfield in mapped_field['fields']:
-            cols.extend(extract_column(subfield))
-        if 'mapping' in mapped_field and mapped_field['mapping'] and \
-                not mapped_field['mapping']['isDiscarded']:
-            field_mapping = copy.deepcopy(mapped_field['mapping'])
-            [field_mapping.pop(k) for k in field_mapping.keys()
-             if k not in ['columnName', 'columnType']]
-            col_name = field_mapping['columnName']
-            if primary_keys and col_name in primary_keys:
-                field_mapping['primaryKey'] = True
-            if sort_keys and col_name in sort_keys:
-                field_mapping['sortKeyIndex'] = sort_key_index
-                sort_key_index += 1
-            if dist_key and col_name == dist_key:
-                field_mapping['distKey'] = True
-            field_mapping['columnType'].pop('truncate', None)
-            cols.append(field_mapping)
-        return cols
-
-    return extract_column({'fields': mapping['fields']})
+        return extract_column({'fields': mapping['fields']})
 
 
 def remove_stats(mapping):

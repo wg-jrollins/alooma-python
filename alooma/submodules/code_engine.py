@@ -83,7 +83,7 @@ class _CodeEngine(object):
         events without transforming them.
         """
         code = DEFAULT_TRANSFORM_CODE
-        self.deploy_code(code=code)
+        return self.deploy_code(code=code)
     
     def test_transform(self, sample, temp_transform=None):
         """

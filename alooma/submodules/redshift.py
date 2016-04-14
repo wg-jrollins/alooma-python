@@ -51,17 +51,17 @@ class _Redshift(object):
         :param columns: self descriptive
         columns example:
         columns = [
-        {
-            'columnName': 'price', 'distKey': False, 'primaryKey': False,
-            'sortKeyIndex': -1,
-            'columnType': {'type': 'FLOAT', 'nonNull': False}
-        }, {
-            'columnName': 'event', 'distKey': True, 'primaryKey': False,
-            'sortKeyIndex': 0,
-            'columnType': {
-                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+            {
+                'columnName': 'price', 'distKey': False, 'primaryKey': False,
+                'sortKeyIndex': -1,
+                'columnType': {'type': 'FLOAT', 'nonNull': False}
+            },
+            {
+                'columnName': 'event', 'distKey': True, 'primaryKey': False,
+                'sortKeyIndex': 0,
+                'columnType': {
+                    'type': 'VARCHAR', 'length': 256, 'nonNull': False
             }
-        }
         ]
         """
         url = self.__api._rest_url + 'tables/' + table_name
@@ -76,17 +76,17 @@ class _Redshift(object):
         :param columns: self descriptive
         columns example:
         columns = [
-        {
-            'columnName': 'price', 'distKey': False, 'primaryKey': False,
-            'sortKeyIndex': -1,
-            'columnType': {'type': 'FLOAT', 'nonNull': False}
-        }, {
-            'columnName': 'event', 'distKey': True, 'primaryKey': False,
-            'sortKeyIndex': 0,
-            'columnType': {
-                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+            {
+                'columnName': 'price', 'distKey': False, 'primaryKey': False,
+                'sortKeyIndex': -1,
+                'columnType': {'type': 'FLOAT', 'nonNull': False}
+            },
+            {
+                'columnName': 'event', 'distKey': True, 'primaryKey': False,
+                'sortKeyIndex': 0,
+                'columnType': {
+                    'type': 'VARCHAR', 'length': 256, 'nonNull': False
             }
-        }
         ]
         """
         url = self.__api._rest_url + 'tables/' + table_name
