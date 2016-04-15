@@ -1,10 +1,25 @@
 import json
+import logging
+import pickle
 
 import requests
+import yaml
 
+import alooma_exceptions
 import submodules
 
-EVENT_DROPPING_TRANSFORM_CODE = "def transform(event):\n\treturn None"
+try:
+    with open('logging.conf') as f:
+        logging_conf = yaml.load(f)
+        logging.config.dictConfig(logging_conf)
+except IOError:
+    logging.basicConfig(
+            format='%(asctime)s [%(levelname)s] %(process)d %(name)s: '
+                   '%(message)s')
+
+logger = logging.getLogger(__name__)
+
+EVENT_DROPPING_TRANSFORM_CODE = 'def transform(event):\n\treturn None'
 
 DEFAULT_ENCODING = 'utf-8'
 
@@ -15,17 +30,21 @@ class Alooma(object):
     provides utility functions allowing a user to perform any action
     the Alooma UI permits, and more.
     """
+
     def __init__(self, hostname, username, password, port=8443,
-                 url_prefix='', eager=False):
+                 url_prefix='', eager=False, session_file=None):
         """
         Initializes the Alooma Python API
-        :param hostname:   The server to connect to. Typically will be of the
-                           form "<your-company-name>.alooma.io"
-        :param username:   Your Alooma username
-        :param password:   The password associated with your username
-        :param port:       (Optional) The destination port, default is 8443
-        :param url_prefix: (Optional) A prefix to append to the REST URL
-        :param eager:      (Optional) If True, attempts to log in eagerly
+        :param hostname:    The server to connect to. Typically will be of the
+                            form "<your-company-name>.alooma.io"
+        :param username:    Your Alooma username
+        :param password:    The password associated with your username
+        :param port:        (Optional) The destination port, default is 8443
+        :param url_prefix:  (Optional) A prefix to append to the REST URL
+        :param eager:       (Optional) If True, attempts to log in eagerly
+        :param session_file:(Optional) A file containing a pickled session. The
+                            API will use that session and save its session to it
+                            when it is closed
         """
         self._hostname = hostname
         self._rest_url = 'https://%s:%d%s/rest/' % (hostname,
@@ -34,10 +53,11 @@ class Alooma(object):
         self._username = username
         self._password = password
         self._requests_params = None
-        self._cookie = None
+        self._session = None
+        self._session_file = session_file
 
         if eager:
-            self.__login()
+            self.__get_session()
 
         self._load_submodules()
 
@@ -54,8 +74,8 @@ class Alooma(object):
                 submodule_class = getattr(submodule, 'SUBMODULE_CLASS')
                 setattr(self, module_name, submodule_class(self))
             except Exception as ex:
-                print 'The submodule "%s" could not be loaded. ' \
-                      'Exception: %s' % (module_name, ex)
+                logger.exception('The submodule "%s" could not be loaded. '
+                                 'Exception: %s', module_name, ex)
 
     def _send_request(self, func, url, is_recheck=False, **kwargs):
         """
@@ -68,42 +88,79 @@ class Alooma(object):
         :return: The requests.model.Response object returned by the wrapped
         function
         """
-        if not self._cookie:
-            self.__login()
-        if not self._cookie:
-            raise Exception('Failed to obtain cookie')
+        if not self._session:
+            self.__get_session()
 
         params = self._requests_params.copy()
         params.update(kwargs)
-        response = func(url, **params)
+
+        func_name = func.__name__
+        session_func = getattr(self._session, func_name)
+
+        response = session_func(url, **params)
 
         if self._response_is_ok(response):
             return response
 
         if response.status_code == 401 and not is_recheck:
             self.__login()
-
             return self._send_request(func, url, True, **kwargs)
 
-        raise Exception("The rest call to {url} failed: {error_message}".format(
-                url=response.url, error_message=response.content))
+        raise Exception('The rest call to %s failed: %s' % (response.url,
+                                                            response.content))
 
     def __login(self):
-        """
-        Logs into the Alooma server associated with this API instance
-        """
         url = self._rest_url + 'login'
         login_data = {"email": self._username, "password": self._password}
-        response = requests.post(url, json=login_data)
+        response = self._session.post(url, json=login_data)
+
         if response.status_code == 200:
-            self._cookie = response.cookies
-            self._requests_params = {
-                    'timeout': 60,
-                    'cookies': self._cookie
-            }
+            logger.debug('Logged in to Alooma server: %s', self._hostname)
         else:
-            raise Exception('Failed to login to {} with username: '
-                            '{}'.format(self._hostname, self._username))
+            msg = 'Failed to login to %s with username: %s'
+            logger.error(msg, self._hostname, self._username)
+            raise alooma_exceptions.SessionError(
+                    msg % (self._hostname, self._username))
+
+    def __get_session(self):
+        """
+        Gets a previous sessions if specified, otherwise logs into the Alooma
+        server associated with this API instance
+        """
+        self._requests_params = {'timeout': 60}
+        session = self._session
+
+        if not session:  # There is no session, get a new one or a stored one
+            if self._session_file:
+                try:
+                    with open(self._session_file) as sf:
+                        self._session = pickle.load(sf)
+                        return
+                except Exception as ex:
+                    logger.exception('Failed to load session from "%s": %s.'
+                                     'Creating a new session',
+                                     self._session_file, ex)
+
+            # There is no session file or we failed to load it
+            self._session = requests.Session()
+            self.__login()
+
+    def close(self):
+        self.__exit__()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        if self._session:
+            self._session.close()
+            if self._session_file:
+                try:
+                    with open(self._session_file, 'w+') as sf:
+                        pickle.dump(self._session, sf)
+                except Exception as ex:
+                    logger.exception('Failed to store the session in a file: '
+                                     '%s', ex)
 
     @staticmethod
     def _response_is_ok(response):
