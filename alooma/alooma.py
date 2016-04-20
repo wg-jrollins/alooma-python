@@ -713,7 +713,7 @@ class Alooma(object):
         :param database_name: Output database name
         :param username: Output username
         :param password: Output password
-        :param skip_validation: :type bool. True for skip input configuration
+        :param skip_validation: :type bool. True for skip output configuration
                validation, False for validate output configurations
         :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
         :param output_name: Output name that would displayed in the UI
