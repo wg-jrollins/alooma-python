@@ -21,6 +21,7 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 DEFAULT_ENCODING = 'utf-8'
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
+REDSHIFT_TYPE = "REDSHIFT"
 METRICS_LIST = [
     'EVENT_SIZE_AVG',
     'EVENT_SIZE_TOTAL',
@@ -705,6 +706,19 @@ class Alooma(object):
     def set_output_config(self, hostname, port, schema_name, database_name,
                           username, password, skip_validation=False,
                           sink_type=None, output_name=None):
+        """
+        :param hostname: Output hostname
+        :param port: Output port
+        :param schema_name: Output schema
+        :param database_name: Output database name
+        :param username: Output username
+        :param password: Output password
+        :param skip_validation: :type bool. True for skip input configuration
+               validation, False for validate output configurations
+        :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
+        :param output_name: Output name that would displayed in the UI
+        :return: :type JSON. Response's content
+        """
         output_node = self._get_node_by('category', 'OUTPUT')
         payload = {
             'configuration': {
@@ -729,7 +743,7 @@ class Alooma(object):
         return parse_response_to_json(res)
 
     def get_redshift_node(self):
-        return self._get_node_by('name', 'Redshift')
+        return self._get_node_by('type', REDSHIFT_TYPE)
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False):
@@ -738,7 +752,7 @@ class Alooma(object):
                                       database_name=database_name,
                                       username=username, password=password,
                                       skip_validation=skip_validation,
-                                      sink_type=RESTREAM_QUEUE_TYPE_NAME)
+                                      sink_type=REDSHIFT_TYPE)
 
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
