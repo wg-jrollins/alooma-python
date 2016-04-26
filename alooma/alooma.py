@@ -42,6 +42,7 @@ METRICS_LIST = [
     'EVENTS_IN_PIPELINE',
     'EVENTS_IN_TRANSIT'
 ]
+HOSTNAME = 'app.alooma.com'
 
 
 class FailedToCreateInputException(Exception):
@@ -49,13 +50,14 @@ class FailedToCreateInputException(Exception):
 
 
 class Alooma(object):
-    def __init__(self, hostname, username, password, port=8443,
-                 server_prefix=''):
-
+    def __init__(self, username, password, hostname=HOSTNAME, client_name="",
+                 **kwargs):
+        if client_name:
+            client_name += "/"
+        self.client_name = client_name
         self.hostname = hostname
-        self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
-                                                   port,
-                                                   server_prefix)
+        self.rest_url = 'https://%s/' \
+            % "/".join(_ for _ in [hostname, client_name, "rest"] if _)
         self.username = username
         self.password = password
         self.requests_params = None
@@ -67,7 +69,7 @@ class Alooma(object):
     def __send_request(self, func, url, is_recheck=False, **kwargs):
         params = self.requests_params.copy()
         params.update(kwargs)
-        response = func(url, **params)
+        response = func(url, verify=False, **params)
 
         if response_is_ok(response):
             return response
@@ -87,9 +89,11 @@ class Alooma(object):
                                                 response.content else ""))
 
     def __login(self):
-        url = self.rest_url + 'login'
-        login_data = {"email": self.username, "password": self.password}
-        response = requests.post(url, json=login_data)
+        url = 'https://%s/login' \
+              % "/".join(_ for _ in [self.hostname, self.client_name] if _)
+        login_data = {"username": self.username, "password": self.password}
+        response = requests.post(url, json=login_data, verify=False)
+
         if response.status_code == 200:
             self.cookie = response.cookies
             self.requests_params = {
