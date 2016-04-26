@@ -69,6 +69,7 @@ class Alooma(object):
     def __send_request(self, func, url, is_recheck=False, **kwargs):
         params = self.requests_params.copy()
         params.update(kwargs)
+        # TODO response = func(url, **params)
         response = func(url, verify=False, **params)
 
         if response_is_ok(response):
@@ -92,6 +93,7 @@ class Alooma(object):
         url = 'https://%s/login' \
               % "/".join(_ for _ in [self.hostname, self.client_name] if _)
         login_data = {"username": self.username, "password": self.password}
+        # TODO response = requests.post(url, json=login_data)
         response = requests.post(url, json=login_data, verify=False)
 
         if response.status_code == 200:
