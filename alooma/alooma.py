@@ -213,13 +213,13 @@ class Alooma(object):
                              .format(file_format=file_format,
                                      formats=", ".join(formats)))
 
-        file_format_json = {"type": file_format}
+        file_format_config = {"type": file_format}
         if file_format == "delimited":
             for key, value in {"delimiter": delimiter,
                                "quoteChar": quote_char,
                                "escapeChar": escape_char}.items():
                 if value:
-                    file_format_json[key] = value
+                    file_format_config[key] = value
 
         post_data = {
             'name': name,
@@ -230,13 +230,13 @@ class Alooma(object):
                 'awsSecretAccessKey': secret,
                 'filePrefix': prefix,
                 'loadFiles': load_files,
-                'fileFormat': json.dumps(file_format_json)
+                'fileFormat': json.dumps(file_format_config)
             }
         }
         return self.create_input(input_post_data=post_data)
 
     def create_mixpanel_input(self, mixpanel_api_key, mixpanel_api_secret,
-                              from_date, name, *args, **kwargs):
+                              from_date, name, transform_id=None):
         post_data = {
             "name": name,
             "type": "MIXPANEL",
