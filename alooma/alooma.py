@@ -608,6 +608,19 @@ class Alooma(object):
         response = self.get_metrics_by_names("EVENTS_IN_TRANSIT", minutes)
         return non_empty_datapoint_values(response)[0]
 
+    def get_restream_stats(self):
+        restream_stats = next(node["stats"]
+                              for node in self.get_structure()["nodes"]
+                              if node["type"] == RESTREAM_QUEUE_TYPE_NAME)
+        return {
+            "size_in_events": restream_stats["availbleForRestream"],
+            "current_queue_size":
+                restream_stats["currentQueueSize"] / 1073741824.0,
+            "free_percent":
+                restream_stats["currentQueueSize"] * 100.0 /
+                restream_stats["maxQueueSize"]
+        }
+
     def get_throughput_by_name(self, name):
         structure = self.get_structure()
         return [x['stats']['throughput'] for x in structure['nodes']
