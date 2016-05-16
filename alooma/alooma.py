@@ -475,7 +475,45 @@ class Alooma(object):
         res = requests.get(url, **self.requests_params)
         return json.loads(res.content.decode())
 
-    def get_samples(self, event_type=None, error_codes=None):
+    def get_sample_by_event_type(self, event_type):
+        return self.__filter_samples(event_type=event_type)
+
+    def get_sample_by_input_label(self, input_label):
+        return self.__filter_samples(input_label=input_label)
+
+    def get_latest_samples(self):
+        latest_samples = self.__send_request(
+            requests.get, self.rest_url + "samples/latest")
+
+        return latest_samples.json()
+
+    def __filter_samples(self, event_type=None, input_label=None,
+                         error_codes=None):
+        samples = self.get_latest_samples()
+        if error_codes and not isinstance(error_codes, list) and \
+                isinstance(error_codes, basestring):
+            error_codes = [error_codes]
+        elif error_codes and not isinstance(error_codes, list) and not \
+                isinstance(error_codes, basestring):
+            raise TypeError("error_code value type must be list or "
+                            "basestring")
+        if event_type and input_label and error_codes:
+            samples = [sample for sample in samples if sample["eventType"] == event_type and sample["sample"]["_metadata"]["input_label"] == input_label and sample["status"] in error_codes]
+        elif event_type and input_label:
+            samples = [sample for sample in samples if sample["eventType"] == event_type and sample["sample"]["_metadata"]["input_label"] == input_label]
+        elif event_type and error_codes:
+            samples = [sample for sample in samples if sample["eventType"] == event_type and sample["status"] in error_codes]
+        elif input_label and error_codes:
+            samples = [sample for sample in samples if sample["sample"]["_metadata"]["input_label"] == input_label and sample["status"] in error_codes]
+        elif event_type:
+            samples = [sample for sample in samples if sample["eventType"] == event_type]
+        elif input_label:
+            samples = [sample for sample in samples if sample["sample"]["_metadata"]["input_label"] == input_label]
+        elif error_codes:
+            samples = [sample for sample in samples if sample["status"] in error_codes]
+        return samples
+
+    def get_samples(self, event_type=None, error_codes=None, input_label=None):
         """
         :param event_type:  optional string containing an event type name
         :param error_codes: optional list of strings containing event status
@@ -485,13 +523,9 @@ class Alooma(object):
                     of that event type will be returned. if error_codes is given
                     only samples of those status codes are returned.
         """
-        url = self.rest_url + 'samples'
-        if event_type:
-            url += '?eventType=%s' % event_type
-        if error_codes and isinstance(error_codes, list):
-            url += ''.join(['&status=%s' % ec for ec in error_codes])
-        res = requests.get(url, **self.requests_params)
-        return json.loads(res.content)
+        return self.__filter_samples(event_type=event_type,
+                                     input_label=input_label,
+                                     error_codes=error_codes)
 
     def get_transform(self):
         url = self.rest_url + 'transform/functions/main'
