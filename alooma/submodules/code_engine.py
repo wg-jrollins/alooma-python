@@ -17,7 +17,7 @@ class _CodeEngine(object):
                     sampling events according to the events' type & status.
         """
         url = self.__api._rest_url + 'status-types'
-        res = requests.get(url, **self.__api.requests_params)
+        res = self.__api._send_request(requests.get, url)
         return json.loads(res.content)
     
     def get_samples_stats(self):
@@ -27,7 +27,7 @@ class _CodeEngine(object):
                     code to the amount of samples for that event type & status
         """
         url = self.__api._rest_url + 'samples/stats'
-        res = requests.get(url, **self.__api.requests_params)
+        res = self.__api._send_request(requests.get, url)
         return json.loads(res.content.decode())
     
     def get_samples(self, event_type=None, error_codes=None):
@@ -45,7 +45,7 @@ class _CodeEngine(object):
             url += '?eventType=%s' % event_type
         if error_codes and isinstance(error_codes, list):
             url += ''.join(['&status=%s' % ec for ec in error_codes])
-        res = requests.get(url, **self.__api.requests_params)
+        res = self.__api._send_request(requests.get, url)
         return json.loads(res.content)
     
     def get_code(self):
@@ -109,7 +109,7 @@ class _CodeEngine(object):
             'code': temp_transform,
             'sample': sample
         }
-        res = requests.post(url, json=data, **self.__api.requests_params)
+        res = self.__api._send_request(requests.post, url, json=data)
         return json.loads(res.content)
     
     def test_transform_all_samples(self, event_type=None, status_code=None):

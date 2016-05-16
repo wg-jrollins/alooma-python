@@ -28,8 +28,8 @@ class _Mapper(object):
         mode should be one of the values in alooma._mapper.MAPPING_MODES
         """
         url = self.__api._rest_url + 'mapping-mode'
-        res = requests.post(url, json='FLEXIBLE' if flexible else 'STRICT',
-                            **self.__api.requests_params)
+        res = self.__api._send_request(
+            requests.post, url, json='FLEXIBLE' if flexible else 'STRICT')
         return res
 
     def get_mapping(self, event_type):

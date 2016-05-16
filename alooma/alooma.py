@@ -105,9 +105,9 @@ class Alooma(object):
         if response.status_code == 401 and not is_recheck:
             self.__login()
             return self._send_request(func, url, True, **kwargs)
-
-        raise Exception('The rest call to %s failed: %s' % (response.url,
-                                                            response.content))
+        raise Exception('The rest call to %s failed: %s' % (
+            response.url, response.content + "\nReason: " + response.reason
+            if response.reason else ""))
 
     def __login(self):
         url = self._rest_url + 'login'
