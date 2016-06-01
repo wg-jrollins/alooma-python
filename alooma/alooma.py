@@ -133,7 +133,7 @@ class Alooma(object):
     def get_mapping_mode(self):
         """
         Returns the default mapping mode currently set in the system.
-        The mapping mode should be one of the values in 
+        The mapping mode should be one of the values in
         alooma.MAPPING_MODES
         """
         url = self.rest_url + 'mapping-mode'
@@ -655,24 +655,26 @@ class Alooma(object):
             raise Exception("Failed to get max latency, returning 0. "
                             "Reason: %s", e)
 
-    def create_table(self, table_name, columns):
+    def create_table(self, table_name, columns, schema=None):
         """
         :param table_name: self descriptive
-        :param columns: self descriptive
-        columns example:
-        columns = [
-        {
-            'columnName': 'price', 'distKey': False, 'primaryKey': False,
-            'sortKeyIndex': -1,
-            'columnType': {'type': 'FLOAT', 'nonNull': False}
-        }, {
-            'columnName': 'event', 'distKey': True, 'primaryKey': False,
-            'sortKeyIndex': 0,
-            'columnType': {
-                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+        :param columns: a list of dicts.
+            example:
+            columns = [
+            {
+                'columnName': 'price', 'distKey': False, 'primaryKey': False,
+                'sortKeyIndex': -1,
+                'columnType': {'type': 'FLOAT', 'nonNull': False}
+            }, {
+                'columnName': 'event', 'distKey': True, 'primaryKey': False,
+                'sortKeyIndex': 0,
+                'columnType': {
+                    'type': 'VARCHAR', 'length': 256, 'nonNull': False
+                }
             }
-        }
-        ]
+            ]
+        :param schema: name of the schema in which to create the table. None
+            means use the default schema configured in alooma output.
         """
         url = self.rest_url + 'tables/' + table_name
 
@@ -680,24 +682,26 @@ class Alooma(object):
 
         return parse_response_to_json(res)
 
-    def alter_table(self, table_name, columns):
+    def alter_table(self, table_name, columns, schema=None):
         """
         :param table_name: self descriptive
-        :param columns: self descriptive
-        columns example:
-        columns = [
-        {
-            'columnName': 'price', 'distKey': False, 'primaryKey': False,
-            'sortKeyIndex': -1,
-            'columnType': {'type': 'FLOAT', 'nonNull': False}
-        }, {
-            'columnName': 'event', 'distKey': True, 'primaryKey': False,
-            'sortKeyIndex': 0,
-            'columnType': {
-                'type': 'VARCHAR', 'length': 256, 'nonNull': False
+        :param columns: a list of dicts.
+            example:
+            columns = [
+            {
+                'columnName': 'price', 'distKey': False, 'primaryKey': False,
+                'sortKeyIndex': -1,
+                'columnType': {'type': 'FLOAT', 'nonNull': False}
+            }, {
+                'columnName': 'event', 'distKey': True, 'primaryKey': False,
+                'sortKeyIndex': 0,
+                'columnType': {
+                    'type': 'VARCHAR', 'length': 256, 'nonNull': False
+                }
             }
-        }
-        ]
+            ]
+        :param schema: name of the schema in which to create the table. None
+            means use the default schema configured in alooma output.
         """
         url = self.rest_url + 'tables/' + table_name
 
