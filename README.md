@@ -47,8 +47,8 @@ mapping_mode = alooma.get_mapping_mode()
 * `get_samples_stats()`
 * `get_samples(event_type=None, status_codes=None)`
 * `get_all_transforms()`
-* `get_transform(function_name='main')`
-* `set_transform(transform, function_name='main')`
+* `get_transform(module_name='main')`
+* `set_transform(transform, module_name='main')`
 * `test_transform(sample, temp_transform=None)`
 * `test_transform_all_samples(event_type, status_code)`
 * `get_incoming_queue_metric(minutes)`

@@ -500,13 +500,13 @@ class Alooma(object):
         return {item['functionName'] : item['code'] for item in res}
 
 
-    def get_transform(self, function_name='main'):
-        url = self.rest_url + 'transform/functions/{}'.format(function_name)
+    def get_transform(self, module_name='main'):
+        url = self.rest_url + 'transform/functions/{}'.format(module_name)
         try:
             res = self.__send_request(requests.get, url)
             return parse_response_to_json(res)["code"]
         except:
-            if function_name == 'main':
+            if module_name == 'main':
                 defaults_url = self.rest_url + 'transform/defaults'
                 res = self.__send_request(requests.get, defaults_url)
                 return parse_response_to_json(res)["PYTHON"]
@@ -515,10 +515,10 @@ class Alooma(object):
                 # notify user of lack of code if not main
                 raise
 
-    def set_transform(self, transform, function_name='main'):
+    def set_transform(self, transform, module_name='main'):
         data = {'language': 'PYTHON', 'code': transform,
-                'functionName': function_name}
-        url = self.rest_url + 'transform/functions/{}'.format(function_name)
+                'functionName': module_name}
+        url = self.rest_url + 'transform/functions/{}'.format(module_name)
         res = self.__send_request(requests.post, url, json=data)
         return res
 
