@@ -493,20 +493,25 @@ class Alooma(object):
         res = requests.get(url, **self.requests_params)
         return json.loads(res.content)
 
-    def get_transform(self):
-        url = self.rest_url + 'transform/functions/main'
+    def get_transform(self, function_name='main'):
+        url = self.rest_url + 'transform/functions/{}'.format(function_name)
         try:
             res = self.__send_request(requests.get, url)
             return parse_response_to_json(res)["code"]
         except:
-            defaults_url = self.rest_url + 'transform/defaults'
-            res = self.__send_request(requests.get, defaults_url)
-            return parse_response_to_json(res)["PYTHON"]
+            if function_name == 'main':
+                defaults_url = self.rest_url + 'transform/defaults'
+                res = self.__send_request(requests.get, defaults_url)
+                return parse_response_to_json(res)["PYTHON"]
+            else:
+                #TODO: remove silent defaults?
+                # notify user of lack of code if not main
+                raise
 
-    def set_transform(self, transform):
+    def set_transform(self, transform, function_name='main'):
         data = {'language': 'PYTHON', 'code': transform,
-                'functionName': 'main'}
-        url = self.rest_url + 'transform/functions/main'
+                'functionName': function_name}
+        url = self.rest_url + 'transform/functions/{}'.format(function_name)
         res = self.__send_request(requests.post, url, json=data)
         return res
 
