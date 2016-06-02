@@ -46,6 +46,7 @@ mapping_mode = alooma.get_mapping_mode()
 * `get_samples_status_codes()`
 * `get_samples_stats()`
 * `get_samples(event_type=None, status_codes=None)`
+* `get_all_transforms()`
 * `get_transform(function_name='main')`
 * `set_transform(transform, function_name='main')`
 * `test_transform(sample, temp_transform=None)`
