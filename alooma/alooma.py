@@ -493,6 +493,13 @@ class Alooma(object):
         res = requests.get(url, **self.requests_params)
         return json.loads(res.content)
 
+    def get_all_transforms(self):
+        url = self.rest_url + 'transform/functions'
+        res = self.__send_request(requests.get, url)
+        # from list of CodeSnippets to {moduleName: code} mapping
+        return {item['functionName'] : item['code'] for item in res}
+
+
     def get_transform(self, function_name='main'):
         url = self.rest_url + 'transform/functions/{}'.format(function_name)
         try:
