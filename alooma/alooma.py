@@ -676,7 +676,10 @@ class Alooma(object):
         :param schema: name of the schema in which to create the table. None
             means use the default schema configured in alooma output.
         """
-        url = self.rest_url + 'tables/' + table_name
+        if schema:
+            url = self.rest_url + 'tables/' + schema + '/' + table_name
+        else:
+            url = self.rest_url + 'tables/' + table_name
 
         res = self.__send_request(requests.post, url, json=columns)
 
@@ -703,7 +706,10 @@ class Alooma(object):
         :param schema: name of the schema in which to create the table. None
             means use the default schema configured in alooma output.
         """
-        url = self.rest_url + 'tables/' + table_name
+        if schema:
+            url = self.rest_url + 'tables/' + schema + '/' + table_name
+        else:
+            url = self.rest_url + 'tables/' + table_name
 
         res = self.__send_request(requests.put, url, json=columns)
 
