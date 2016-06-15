@@ -112,15 +112,15 @@ class Alooma(object):
     def __login(self):
         url = self._rest_url + 'login'
         login_data = {"email": self._username, "password": self._password}
-        response = self._session.post(url, json=login_data)
+        resp = self._session.post(url, json=login_data)
 
-        if response.status_code == 200:
+        if resp.status_code == 200:
             logger.debug('Logged in to Alooma server: %s', self._hostname)
         else:
-            msg = 'Failed to login to %s with username: %s'
-            logger.error(msg, self._hostname, self._username)
+            msg = 'Failed to login to %s with username "%s": %s'
+            logger.error(msg, self._hostname, self._username, resp.content)
             raise alooma_exceptions.SessionError(
-                    msg % (self._hostname, self._username))
+                    msg % (self._hostname, self._username, resp.content))
 
     def __get_session(self):
         """
@@ -143,7 +143,6 @@ class Alooma(object):
 
             # There is no session file or we failed to load it
             self._session = requests.Session()
-            self.__login()
 
     def close(self):
         self.__exit__()
