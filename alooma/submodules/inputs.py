@@ -4,11 +4,16 @@ import time
 
 import requests
 
+import urllib
+import datetime
+
 import alooma_exceptions
 
 POST_DATA_CONFIGURATION = 'configuration'
 POST_DATA_NAME = 'name'
 POST_DATA_TYPE = 'type'
+DATE_FORMAT = '%Y-%m-%d'
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
 class _Structure(object):
@@ -20,41 +25,762 @@ class _Structure(object):
         return [x['stats']['throughput'] for x in structure['nodes']
                 if x['name'] == name and not x['deleted']]
 
-    def create_mongodb_input(self, name, hostname, database):
-        configuration = {"hostname": hostname, "database": database}
-        return self.create_input(configuration=configuration,
-                                 input_type="MONGODB",
-                                 input_name=name)
+    def create_azure_input(self, input_name, account_name, account_key,
+                           container_name, file_prefix, load_files="new",
+                           one_click=False):
+        """
+        Create a new azure input
+        :param input_name: Name your new input
+        :param account_name: Azure Account Name
+        :param account_key: Azure Account Key
+        :param container_name: Container Name
+        :param file_prefix: File prefix (optional)
+        :param load_files: Import files (optional - must be "new", "all")
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
+        load_files_options = ["new", "all"]
+        if load_files not in load_files_options:
+            raise ValueError("load_files value most be one of the above %s."
+                             % ", ".join(load_files_options))
 
-    def create_mixpanel_input(self, name, mixpanel_api_key, mixpanel_api_secret,
-                              from_date):
         configuration = {
-            "mixpanelApiKey": mixpanel_api_key,
-            "mixpanelApiSecret": mixpanel_api_secret,
-            "fromDate": from_date
+            "azureAccountName": account_name,
+            "azureAccountKey": account_key,
+            "azureContainerName": container_name,
+            "azureFilePrefix": file_prefix,
+            "loadFiles": load_files
+        }
+        self.create_input(configuration=configuration, input_name=input_name,
+                          input_type="AZURE_STORAGE", one_click=one_click)
+
+    def create_rest_input(self, input_name, one_click=False):
+        """
+        Create a new REST input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          input_type="RESTAPI", one_click=one_click)
+
+    def create_mobile_sdk_input(self, input_name, one_click=False):
+        """
+        Create a new Mobile SDK input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          one_click=one_click, input_type="MOBILE_SDK")
+
+    def create_java_sdk_input(self, input_name, one_click=False):
+        """
+        Create a new JAVA SDK input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          one_click=one_click, input_type="JAVA_SDK")
+
+    def create_javascript_sdk_input(self, input_name, one_click=False):
+        """
+        Create a new JavaScript SDK input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          one_click=one_click, input_type="JSSDK")
+
+    def create_localytics_input(self, input_name, aws_access_key_id,
+                                aws_secret_access_key, bucket_name,
+                                company_name, app_id, starting_from=None,
+                                end_date=None, one_click=False):
+        """
+        Create a new Localytics input
+        :param input_name: Name your new input
+        :param aws_access_key_id: AWS Access Key ID
+        :param aws_secret_access_key: AWS Secret Access Key
+        :param bucket_name: Bucket Name
+        :param company_name: Company Name
+        :param app_id: App ID
+        :param starting_from: If you also want to import historical events then
+                              pass datetime.date (utc time) object (Optional)
+        :param end_date: If you want to import events until and including then
+                         pass datetime.date (utc time) object (Optional)
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
+        configuration = {
+            'bucketName': bucket_name,
+            'awsAccessKeyId': aws_access_key_id,
+            "awsSecretAccessKey": aws_secret_access_key,
+            "companyName": company_name,
+            "appId": app_id
+        }
+        if end_date:
+            configuration["fromDate"] = end_date.strftime(DATE_FORMAT)
+        if starting_from:
+            configuration["toDate"] = starting_from.strftime(DATE_FORMAT)
+
+        self.create_input(configuration=configuration, input_name=input_name,
+                          input_type="LOCALYTICS", one_click=one_click)
+
+    def create_mssql_incremental_dump_load_input(self, input_name, server, port,
+                                                 user, password, database,
+                                                 schema, tables,
+                                                 ssh_config=None,
+                                                 batch_size=10000,
+                                                 one_click=False):
+        """
+        Create a new Microsoft SQL Server incremental dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your Microsoft SQL server
+                       
+        :param port: Microsoft SQL server's port 
+        :param user: User name to use when connecting to your Microsoft SQL
+                     server 
+        :param password: Password to use when connecting to your Microsoft SQL
+                         server 
+        :param database: Database name to replicate 
+        :param schema: Schema name 
+        :param tables: Tables to replicate. :type dict which it's keys are the
+                       tables names and the values are the update indicator
+                       columns
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param batch_size: :type int
+                           Bigger batch size means faster backfill, but may
+                           increase the load on your Microsoft SQL server.
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_incremental_dump_load_input(
+            db_type="mssql", input_name=input_name, server=server, port=port,
+            user=user, password=password, database=database, schema=schema,
+            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
+            one_click=one_click)
+
+    def create_mssql_full_dump_load_replication_input(
+            self, input_name, server, port, user, password, database, schema,
+            tables, replication_frequency=5, start_time=datetime.time(5),
+            ssh_config=None, one_click=False):
+        """
+        Create a new Microsoft SQL Server full dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your Microsoft SQL server
+                       
+        :param port: Microsoft SQL server's port 
+        :param user: User name to use when connecting to your Microsoft SQL
+                     server 
+        :param password: Password to use when connecting to your Microsoft SQL
+                         server 
+        :param database: Database name to replicate 
+        :param schema: Schema name 
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param replication_frequency: Every how much time to replicate tables
+        :param start_time: When to start running replication :type datetime
+                           object that contains time attributes
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_full_dump_load_replication_input(
+            'mssql', input_name=input_name, port=port, tables=tables,
+            replication_frequency=replication_frequency, start_time=start_time,
+            server=server, user=user, password=password, database=database,
+            schema=schema, ssh_config=ssh_config, one_click=one_click)
+
+    def create_mixpanel_input(self, input_name, mixpanel_api_key,
+                              mixpanel_api_secret,
+                              from_date=None, to_date=None,
+                              one_click=False):
+        """
+        Create a new Mixpanel input
+        :param input_name: Name your new input
+        :param mixpanel_api_key: API key (32 characters)
+        :param mixpanel_api_secret: API secret (32 characters)
+        :param from_date: If you want to import events until and including then
+                          pass datetime.date (utc time) object (Optional)
+        :param to_date: If you also want to events until specific date then
+                        pass datetime.date (utc time) object (Optional)
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+
+        configuration = {
+            "mixpanelApiKey": mixpanel_api_key.lower(),
+            "mixpanelApiSecret": mixpanel_api_secret.lower()
         }
 
-        return self.create_input(configuration=configuration, input_name=name,
-                                 input_type="MIXPANEL")
+        if from_date:
+            configuration["fromDate"] = from_date.strftime(DATE_FORMAT)
 
-    def create_s3_input(self, name, key, secret, bucket, prefix='',
-                        load_files='all', file_format="json", delimiter=",",
-                        quote_char="", escape_char=""):
-        formats = ["json", "delimited", "other"]
-        if file_format not in formats:
-            raise ValueError("File format cannot be '{file_format}', it has to "
-                             "be one of those: {formats}"
-                             .format(file_format=file_format,
-                                     formats=", ".join(formats)))
+        if to_date:
+            configuration["toDate"] = to_date.strftime(DATE_FORMAT)
 
-        file_format_config = {"type": file_format}
-        if file_format == "delimited":
-            for key, value in {"delimiter": delimiter,
-                               "quoteChar": quote_char,
-                               "escapeChar": escape_char}.items():
-                if value:
-                    file_format_config[key] = value
+        self.create_input(configuration=configuration, input_name=input_name,
+                          input_type="MIXPANEL", one_click=one_click)
 
+    def create_mongodb_input(self, input_name, hostname, port, database,
+                             username=None, password=None,
+                             additional_connection_string=None,
+                             collections_to_replicate=None,
+                             start_time=None, ssh_config=None,
+                             one_click=False):
+        """
+        Create a new MongoDB input
+        :param input_name: Name your new input
+        :param hostname: Hostname or IP address of your MongoDB server
+        :param port: MongoDB server's port 
+        :param database: Database name to replicate
+        :param username: Username used to connect to your MongoDB server
+                         (optional)
+        :param password: Password used to connect to your MongoDB server
+                         (optional)
+        :param additional_connection_string: This input box allows you to add
+                                             any valid MongoDB connection string
+                                             parameter to the input (optional)
+        :param collections_to_replicate: A space-separated list of collections
+                                         to monitor in the database. Leave blank
+                                         for all collections
+        :param start_time: If you also want to import historical events then
+                           pass datetime.date (utc time) object (Optional)
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+
+        :return:
+        """
+        configuration = {
+            'port': port,
+            'hostname': hostname,
+            'database': database,
+            'advanced_parameters': additional_connection_string,
+            'collections': collections_to_replicate
+        }
+        if username:
+            configuration['username'] = username
+        if password:
+            configuration['password'] = password
+        if additional_connection_string:
+            configuration['advanced_parameters'] = additional_connection_string
+        if collections_to_replicate:
+            configuration['collections'] = collections_to_replicate
+        if start_time:
+            configuration['start_time'] = start_time.strftime(DATETIME_FORMAT)
+        if ssh_config:
+            configuration['ssh'] = json.dumps(ssh_config)
+
+        self.create_input(configuration=configuration, input_type='MONGODB',
+                          input_name=input_name, one_click=one_click)
+
+    def create_mysql_incremental_dump_load_input(self, input_name, server,
+                                                 port, user, password, tables,
+                                                 database=None, schema=None,
+                                                 ssh_config=None,
+                                                 batch_size=10000,
+                                                 one_click=False):
+        """
+        Create a new MySQL incremental dump\load input
+        :param input_name: :type str. Name your new input
+        :param server: Hostname or IP address of your Microsoft SQL server
+                       
+        :param port: MySQL server's port 
+        :param user: User name to use when connecting to your
+                     MySQL server 
+        :param password: Password to use when connecting to your
+                         MySQL server 
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param tables: Tables to replicate. :type dict which it's keys are the
+                       tables names and the values are the update indicator
+                       columns
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param batch_size: :type int
+                           Bigger batch size means faster backfill, but may
+                           increase the load on your MySQL.
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        if database is None and schema is None:
+            raise TypeError("Both database and schema are None. You have to "
+                            "provide one of them")
+        self.create_incremental_dump_load_input(
+            db_type='mysql', input_name=input_name, server=server, port=port,
+            user=user, password=password, database=database, schema=schema,
+            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
+            one_click=one_click)
+
+    def create_mysql_full_dump_load_replication_input(
+            self, input_name, server, port, user, password, tables,
+            replication_frequency, start_time, schema=None, database=None,
+            ssh_config=None, one_click=False):
+        """
+        Create a new MySQL full dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your MySQL server 
+        :param port: Microsoft SQL server's port 
+        :param user: User name to use when connecting to your
+                     MySQL server 
+        :param password: Password to use when connecting to your
+                         MySQL server 
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param replication_frequency: Every how much time to replicate tables
+        :param start_time: When to start running replication :type datetime
+                           object that contains time attributes
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        if database is None and schema is None:
+            raise TypeError("Both database and schema are None. You have to "
+                            "provide one of them")
+        self.create_full_dump_load_replication_input(
+            db_type='mysql', input_name=input_name, port=port, tables=tables,
+            replication_frequency=replication_frequency, start_time=start_time,
+            server=server, user=user, password=password, schema=schema,
+            ssh_config=ssh_config, database=database, one_click=one_click)
+
+    def create_mysql_log_replication_input(self, input_name, server, port,
+                                           user, password, tables=None,
+                                           ssh_config=None, one_click=False):
+        """
+        Create a new MySQL log replication input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your Microsoft SQL server
+                       
+        :param port: MySQL server's port 
+        :param user: User name to use when connecting to your
+                     MySQL server 
+        :param password: Password to use when connecting to your
+                         MySQL server 
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        configuration = {
+            "hostname": server,
+            "port": port,
+            "username": user,
+            "password": password,
+            "tables_to_replicate": " ".join(tables),
+            "replication_type": "log_dump_load"
+        }
+        if ssh_config:
+            configuration['ssh'] = json.dumps(ssh_config)
+        self.create_input(configuration=configuration, input_name=input_name,
+                          input_type="MYSQL", one_click=one_click)
+
+    def create_oracle_incremental_dump_load_input(self, input_name, server,
+                                                  port, user, password,
+                                                  database, tables,
+                                                  ssh_config=None,
+                                                  batch_size=10000,
+                                                  one_click=False):
+        """
+        Create a new Oracle incremental dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your Oracle server 
+        :param port: Oracle server's port 
+        :param user: User name to use when connecting to your
+                     Oracle server 
+        :param password: Password to use when connecting to your
+                         Oracle server 
+        :param database: Database name to replicate 
+        :param tables: Tables to replicate. :type dict which it's keys are the
+                       tables names and the values are the update indicator
+                       columns
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param batch_size: :type int
+                           Bigger batch size means faster backfill, but may
+                           increase the load on your Oracle server.
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_incremental_dump_load_input(
+            db_type="oracle", input_name=input_name, server=server, port=port,
+            user=user, password=password, database=database,
+            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
+            one_click=one_click)
+
+    def create_oracle_full_dump_load_replication_input(
+            self, input_name, server, port, user, password, database,
+            tables, replication_frequency=5, start_time=datetime.time(5),
+            ssh_config=None, one_click=False):
+        """
+        Create a new Oracle full dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your Oracle 
+        :param port: Oracle server's port 
+        :param user: User name to use when connecting to your
+                     Oracle server 
+        :param password: Password to use when connecting to your
+                         Oracle server 
+        :param database: Database name to replicate 
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param replication_frequency: Every how much time to replicate tables
+        :param start_time: When to start running replication :type datetime
+                           object that contains time attributes
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_full_dump_load_replication_input(
+            'oracle', input_name=input_name, port=port, tables=tables,
+            replication_frequency=replication_frequency, start_time=start_time,
+            server=server, user=user, password=password, database=database,
+            ssh_config=ssh_config, one_click=one_click)
+
+    def create_psql_full_dump_load_replication_input(
+            self, input_name, server, port, user, password, database, schema,
+            tables, replication_frequency=5, start_time=datetime.time(5),
+            ssh_config=None, one_click=False):
+        """
+        Create a new PostgreSQL full dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your PostgreSQL server
+        :param port: PostgreSQL server's port ]
+        :param user: User name to use when connecting to your server
+        :param password: Password to use when connecting to your
+                         PostgreSQL server
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param replication_frequency: Every how much time to replicate tables
+        :param start_time: When to start running replication :type datetime
+                           object that contains time attributes
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_full_dump_load_replication_input(
+            'psql', input_name=input_name, port=port, tables=tables,
+            replication_frequency=replication_frequency, start_time=start_time,
+            server=server, user=user, password=password, database=database,
+            schema=schema, ssh_config=ssh_config, one_click=one_click)
+
+    def create_psql_incremental_dump_load_input(self, input_name, server, port,
+                                                user, password, database,
+                                                schema, tables, ssh_config=None,
+                                                batch_size=10000,
+                                                one_click=False):
+        """
+        Create a new PostgreSQL incremental dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your PostgreSQL server
+        :param port: Microsoft SQL server's port
+        :param user: User name to use when connecting to your PostgreSQL server
+        :param password: Password to use when connecting to your server
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param tables: Tables to replicate. :type dict which it's keys are the
+                       tables names and the values are the update indicator
+                       columns
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param batch_size: :type int
+                           Bigger batch size means faster backfill, but may
+                           increase the load on your PostgreSQL server.
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_incremental_dump_load_input(
+            db_type="psql", input_name=input_name, server=server, port=port,
+            user=user, password=password, database=database, schema=schema,
+            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
+            one_click=one_click)
+
+    def create_psql_log_replication_input(self, input_name, server, port,
+                                          user, password, database, schema,
+                                          slot_name, tables="",
+                                          ssh_config=None, one_click=False):
+        """
+        Create a new PostgreSQL log replication input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your PostgreSQL server
+        :param port: PostgreSQL server's port
+        :param user: User name to use when connecting to your PostgreSQL server
+        :param password: Password to use when connecting to your PostgreSQL
+                         server
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param slot_name: Logical replication slot name
+        :param tables: A space separated list of table names or list of table
+                       names
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        if isinstance(tables, list):
+            tables = " ".join(tables)
+        configuration = {
+            "username": user,
+            "tables": tables,
+            "replication_type": "log_dump_load",
+            "hostname": server,
+            "db": database,
+            "slot_name": slot_name,
+            "auto_map": json.dumps(tables),
+            "password": password,
+            "port": port,
+            "schema": schema
+        }
+        if ssh_config:
+            configuration['ssh'] = json.dumps(ssh_config)
+        self.create_input(configuration, input_name, "POSTGRESQL", one_click)
+
+    def create_python_sdk_input(self, input_name, one_click=False):
+        """
+        Create a new Python SDK input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          input_type="PYTHON_SDK", one_click=one_click)
+
+    def create_rds_heroku_psql_incremental_dump_load_input(
+            self, input_name, server, port, user, password, database, schema,
+            tables, batch_size=10000, ssh_config=None, one_click=False):
+        """
+        Create a new RDS/Heroku PostgreSQL incremental dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your RDS/Heroku PostgreSQL server 
+        :param port: RDS/Heroku PostgreSQL server's port 
+        :param user: User name to use when connecting to your
+                     RDS/Heroku PostgreSQL server 
+        :param password: Password to use when connecting to your
+                         RDS/Heroku PostgreSQL server 
+        :param database: Database name to replicate 
+        :param schema: Schema name
+        :param tables: Tables to replicate. :type dict which it's keys are the
+                       tables names and the values are the update indicator
+                       columns
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param batch_size: :type int
+                           Bigger batch size means faster backfill, but may
+                           increase the load on your RDS/Heroku PostgreSQL server.
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_incremental_dump_load_input(
+            db_type="psql", input_name=input_name, server=server, port=port,
+            user=user, password=password, database=database, schema=schema,
+            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
+            one_click=one_click)
+
+    def create_rds_heroku_psql_full_dump_load_replication_input(
+            self, input_name, server, port, user, password, database, schema,
+            tables, replication_frequency=5, start_time=datetime.time(5),
+            ssh_config=None, one_click=False):
+        """
+        Create a new RDS/Heroku PostgreSQL full dump\load input
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your RDS/Heroku PostgreSQL
+        :param port: RDS/Heroku PostgreSQL server's port
+        :param user: User name to use when connecting to your
+                     RDS/Heroku PostgreSQL server
+        :param password: Password to use when connecting to your
+                         RDS/Heroku PostgreSQL server
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param replication_frequency: Every how much time to replicate tables
+        :param start_time: When to start running replication :type datetime
+                           object that contains time attributes
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        self.create_full_dump_load_replication_input(
+            'psql', input_name=input_name, port=port, tables=tables,
+            replication_frequency=replication_frequency, start_time=start_time,
+            server=server, user=user, password=password, database=database,
+            schema=schema, ssh_config=ssh_config, one_click=one_click)
+
+    def create_s3_json_lines_input(self, input_name, key, secret, bucket,
+                                   prefix='', all_files=False, one_click=False):
+        """
+        Create a new S3 file format - JSON input
+        :param input_name: Name your new input :type str
+        :param key: AWS Access Key ID :type str
+        :param secret: AWS Secret Access Key :type str
+        :param bucket: Bucket Name :type str
+        :param prefix: File prefix (optional) :type str
+        :param all_files: Select which files to import :type bool
+        :param one_click: Define whether Alooma will map this input's events to
+                          your target database, or you'll define your own
+                          mapping. :type bool
+        :return:
+        """
+        file_format_config = {"type": "json"}
+
+        self.create_s3_input(input_name, key, secret, bucket, prefix, all_files,
+                             file_format_config, one_click=one_click)
+
+    def create_s3_delimited_with_headers_input(self, input_name, key, secret,
+                                               bucket, prefix='',
+                                               all_files=False,
+                                               delimiter_character=',',
+                                               file_quote_character='"',
+                                               escape_character='',
+                                               one_click=False):
+        """
+        Create a new S3 file format - Delimited with headers input
+        :param input_name: Name your new input :type str
+        :param key: AWS Access Key ID :type str
+        :param secret: AWS Secret Access Key :type str
+        :param bucket: Bucket Name :type str
+        :param prefix: File prefix (optional) :type str
+        :param all_files: Select which files to import :type bool
+        :param delimiter_character: Delimiter character (\t for tab) :type str
+        :param file_quote_character: File quote character (optional) :type str
+        :param escape_character: Escape character (optional) :type str
+        :param one_click: Define whether Alooma will map this input's events to
+                          your target database, or you'll define your own
+                          mapping. :type bool
+        :return:
+        """
+        # Select which files to import
+        file_format_config = {
+            'type': 'delimited',
+            'delimiter': delimiter_character,
+            'quoteChar': file_quote_character,
+            'escapeChar': escape_character
+        }
+        self.create_s3_input(input_name, key, secret, bucket, prefix, all_files,
+                             file_format_config, one_click=one_click)
+
+    def create_s3_other_input(self, input_name, key, secret, bucket, prefix='',
+                              all_files=False, one_click=False):
+        """
+        Create a new S3 file format - Other (Delimited without header, Syslog,
+        XML, other) input
+        :param input_name: Name your new input :type str
+        :param key: AWS Access Key ID :type str
+        :param secret: AWS Secret Access Key :type str
+        :param bucket: Bucket Name :type str
+        :param prefix: File prefix (optional) :type str
+        :param all_files: Select which files to import :type bool
+        :param one_click: Define whether Alooma will map this input's events to
+                          your target database, or you'll define your own
+                          mapping. :type bool
+        :return:
+        """
+        file_format_config = {'type': 'other'}
+
+        self.create_s3_input(input_name, key, secret, bucket, prefix, all_files,
+                             file_format_config, one_click=one_click)
+
+    def create_s3_input(self, input_name, key, secret, bucket, prefix='',
+                        all_files=False, file_format_config=None,
+                        one_click=False):
+        """
+        Create a new S3 input
+        :param input_name: Name your new input :type str
+        :param key: AWS Access Key ID :type str
+        :param secret: AWS Secret Access Key :type str
+        :param bucket: Bucket Name :type str
+        :param prefix: File prefix (optional) :type str
+        :param all_files: Select which files to import :type bool
+        :param file_format_config: The file format configs. Must contain only those keys and
+        :param one_click: Define whether Alooma will map this input's events to
+                          your target database, or you'll define your own
+                          mapping. :type bool
+
+        :return:
+        """
+        # Select which files to import
+        load_files = "all" if all_files else "new"
+
+        forbidden_file_format_config_keys = [k for k in set(file_format_config)
+                                             if k not in ['type',
+                                                          'delimiter',
+                                                          'quoteChar',
+                                                          'escapeChar']]
+        if any(forbidden_file_format_config_keys):
+            raise alooma_exceptions.FailedToCreateInputException(
+                'file_format_config argument contains a unknown keys: '
+                '"%s"' % ", ".join(file_format_config))
+        if 'type' not in file_format_config.keys():
+            raise alooma_exceptions.FailedToCreateInputException(
+                'file_format_config must contain "type" key')
         configuration = {
             "awsAccessKeyId": key,
             "awsBucketName": bucket,
@@ -64,52 +790,194 @@ class _Structure(object):
             "fileFormat": json.dumps(file_format_config)
         }
 
-        return self.create_input(configuration=configuration,
-                                 input_name=name,
-                                 input_type="S3")
+        self.create_input(configuration=configuration, input_name=input_name,
+                          input_type="S3", one_click=one_click)
 
-    def create_azure_input(self, name, account_name, account_key,
-                           container_name, file_prefix, load_files):
+    def create_salesforce_input(self, input_name, user, password, token,
+                                objects, is_sandbox=False,
+                                start_time=datetime.datetime.utcnow(),
+                                daily_api_call_usage_limit=None,
+                                daily_bulk_api_query_limit=None,
+                                one_click=False):
+        """
+        Create a new Salesforce input
+        :param input_name: Name your new input :type str
+        :param user: Username used to connect to your Salesforce
+        :param password: Password used to connect to your Salesforce
+        :param token: Your Salesforce account security token
+        :param objects: :type list or str: List of Salesforce objects to Replicate
+        :param is_sandbox: :type bool: This is a sandbox account
+        :param start_time: :type datetime: Since when to start running replication
+        :param daily_api_call_usage_limit: :type int: Set a daily API call
+                                                      usage limit
+        :param daily_bulk_api_query_limit: :type int: Set a daily Bulk API
+                                                      query limit
+        :param one_click: Define whether Alooma will map this input's events to
+                          your target database, or you'll define your own
+                          mapping. :type bool
+        :return:
+        """
         configuration = {
-            "azureAccountName": account_name,
-            "azureAccountKey": account_key,
-            "azureContainerName": container_name,
-            "azureFilePrefix": file_prefix,
-            "loadFiles": load_files
+            "custom_objects": " ".join(objects)
+                              if isinstance(objects, list)
+                              else objects,
+            "is_sandbox": is_sandbox,
+            "username": user,
+            "password": password,
+            "token": token,
+            "start_time": start_time.strftime(DATETIME_FORMAT)
         }
-        self.create_input(configuration=configuration, input_name=name,
-                          input_type="AZURE_STORAGE")
 
-    def create_localytics_input(self, name, aws_access_key_id,
-                                aws_secret_access_key, company_name, app_id):
+        if daily_api_call_usage_limit:
+            configuration['daily_api_calls'] = daily_api_call_usage_limit
+        if daily_bulk_api_query_limit:
+            configuration['daily_bulk_queries'] = daily_bulk_api_query_limit
+
+        self.create_input(configuration=configuration,
+                          input_name=input_name,
+                          input_type='SALESFORCE',
+                          one_click=one_click)
+
+    def create_incremental_dump_load_input(self, db_type, input_name, server,
+                                           port, user, password, tables,
+                                           database=None, schema=None,
+                                           ssh_config=None,
+                                           batch_size=10000, one_click=False):
+        """
+        Create a new Incremental dump\load input
+        :param db_type: :type str. The database type
+        :param input_name: :type str. Name your new input
+        :param server: Hostname or IP address of your server
+                       
+        :param port: server's port 
+        :param user: User name to use when connecting to your server 
+        :param password: Password to use when connecting to your
+                         server 
+        :param tables: Tables to replicate. :type dict which it's keys are the
+                       tables names and the values are the update indicator
+                       columns
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param batch_size: :type int
+                           Bigger batch size means faster backfill, but may
+                           increase the load on your server.
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        if isinstance(port, str):
+            port = int(port)
         configuration = {
-            "awsAccessKeyId": aws_access_key_id,
-            "awsSecretAccessKey": aws_secret_access_key,
-            "companyName": company_name,
-            "appId": app_id
+            "db_type": db_type,
+            "port": port,
+            "replication_type": "incremental_load",
+            "server": server,
+            "user": user,
+            "password": password,
+            "tables": json.dumps(tables),
+            "batch_size": batch_size
         }
-        self.create_input(configuration=configuration, input_name=name,
-                          input_type="LOCALYTICS")
+        if ssh_config:
+            configuration['ssh'] = json.dumps(ssh_config)
+        if schema:
+            configuration['schema'] = schema
+        if database:
+            configuration['database'] = database
 
-    def create_input(self, configuration, input_name, input_type):
+        self.create_input(configuration, input_name, "ODBC", one_click)
+
+    def create_full_dump_load_replication_input(
+            self, db_type, input_name, server, port, user, password,
+            tables, replication_frequency, start_time,
+            database=None, schema=None, ssh_config=None, one_click=False):
+        """
+        Create a new full dump\load input
+        :param db_type: odbc input type
+        :param input_name: Name your new input
+        :param server: Hostname or IP address of your server 
+        :param port: server's port 
+        :param user: User name to use when connecting to your server 
+        :param password: Password to use when connecting to your
+                         server 
+        :param tables: List of Tables to Replicate :type list or str space
+                                                         separated list of table
+                                                         names
+        :param replication_frequency: Every how much time to replicate tables
+        :param start_time: Since when to start running replication :type datetime
+                           object that contains time attributes
+        :param database: Database name to replicate
+        :param schema: Schema name
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        :return:
+        """
+        if isinstance(tables, str):
+            tables = tables.split()
+
+        m = start_time.minute if hasattr(start_time, 'minute') else 0
+        h = start_time.hour if hasattr(start_time, 'hour') else 0
+
+        number_of_runs_per_day = 24 / replication_frequency + (
+            1 if 24 % replication_frequency else 0)
+        hours = [str((h + (i * replication_frequency)) % 24) for i in
+                 range(number_of_runs_per_day)]
+
+        configuration = {
+            "db_type": db_type,
+            "port": port,
+            "replication_type": "full_dump_load",
+            "tables": json.dumps(tables),
+            "run_at": "%i %s * * *" % (m, ','.join(hours)),
+            "server": server,
+            "user": user,
+            "password": password
+        }
+        if ssh_config:
+            configuration['ssh'] = json.dumps(ssh_config)
+        if schema:
+            configuration['schema'] = schema
+        if database:
+            configuration['database'] = database
+
+        self.create_input(configuration, input_name=input_name,
+                          input_type="ODBC", one_click=one_click)
+
+    def create_input(self, configuration, input_name, input_type,
+                     one_click=False):
+        """
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping. 
+        """
         if input_type not in self.get_input_types():
             raise alooma_exceptions.FailedToCreateInputException(
                 "Input type must be one of '%s', you tried to add '%s'" % (
                     ", ".join(self.get_input_types()), input_type))
+
         post_data = {
             POST_DATA_NAME: input_name,
             POST_DATA_TYPE: input_type,
             POST_DATA_CONFIGURATION: configuration
         }
+
         structure = self.get_structure()
         previous_nodes = [x for x in structure['nodes']
                           if x[POST_DATA_NAME] == post_data[POST_DATA_NAME]]
 
-        url = self.__api._rest_url + 'plumbing/nodes'
+        url = self.__api._rest_url + 'plumbing/inputs?%s' % urllib.urlencode(
+            {'autoMap': one_click})
 
         self.__api._send_request(requests.post, url, json=post_data)
 
-        new_id = None
         retries_left = 10
         while retries_left > 0:
             retries_left -= 1
@@ -121,11 +989,11 @@ class _Structure(object):
                 old_ids = set([x['id'] for x in previous_nodes])
                 current_ids = set([x['id'] for x in input_type_nodes])
                 try:
-                    new_id = current_ids.difference(old_ids).pop()
+                    current_ids.difference(old_ids).pop()
                 except KeyError:
                     pass
 
-                return new_id
+                return
             time.sleep(1)
 
         raise alooma_exceptions.FailedToCreateInputException(
@@ -241,5 +1109,25 @@ class _Structure(object):
 
     def _get_input_node_ids(self, name):
         return self._get_node_by("name", name)["id"]
+
+    def get_token(self, input_name, input_type):
+        url = self.__api._rest_url + 'token?inputLabel=%s&inputType=%s' % (
+            input_name, input_type.upper())
+        token = self.__api._send_request(requests.get, url)
+        return token.json()["token"]
+
+    @staticmethod
+    def get_ssh_config(ssh_server_ip, port, username=None,
+                       password=None):
+        ssh_config = {
+            'server': ssh_server_ip,
+            'port': port
+        }
+        if not username:
+            ssh_config['username'] = username
+        if not password:
+            ssh_config['password'] = password
+
+        return ssh_config
 
 SUBMODULE_CLASS = _Structure

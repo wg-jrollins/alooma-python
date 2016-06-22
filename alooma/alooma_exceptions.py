@@ -1,3 +1,6 @@
+import functools
+
+
 class FailedToCreateInputException(Exception):
     pass
 

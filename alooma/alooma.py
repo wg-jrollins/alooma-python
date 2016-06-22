@@ -17,8 +17,6 @@ except IOError:
             format='%(asctime)s [%(levelname)s] %(process)d %(name)s: '
                    '%(message)s')
 
-logger = logging.getLogger(__name__)
-
 EVENT_DROPPING_TRANSFORM_CODE = 'def transform(event):\n\treturn None'
 
 DEFAULT_ENCODING = 'utf-8'
@@ -59,6 +57,8 @@ class Alooma(object):
         if eager:
             self.__get_session()
 
+        self._logger = logging.getLogger(__name__)
+
         self._load_submodules()
 
     def _load_submodules(self):
@@ -74,8 +74,8 @@ class Alooma(object):
                 submodule_class = getattr(submodule, 'SUBMODULE_CLASS')
                 setattr(self, module_name, submodule_class(self))
             except Exception as ex:
-                logger.exception('The submodule "%s" could not be loaded. '
-                                 'Exception: %s', module_name, ex)
+                self._logger.exception('The submodule "%s" could not be loaded.'
+                                       ' Exception: %s', module_name, ex)
 
     def _send_request(self, func, url, is_recheck=False, **kwargs):
         """
@@ -115,10 +115,10 @@ class Alooma(object):
         resp = self._session.post(url, json=login_data)
 
         if resp.status_code == 200:
-            logger.debug('Logged in to Alooma server: %s', self._hostname)
+            self._logger.debug('Logged in to Alooma server: %s', self._hostname)
         else:
             msg = 'Failed to login to %s with username "%s": %s'
-            logger.error(msg, self._hostname, self._username, resp.content)
+            self._logger.error(msg, self._hostname, self._username, resp.content)
             raise alooma_exceptions.SessionError(
                     msg % (self._hostname, self._username, resp.content))
 
@@ -137,9 +137,9 @@ class Alooma(object):
                         self._session = pickle.load(sf)
                         return
                 except Exception as ex:
-                    logger.exception('Failed to load session from "%s": %s.'
-                                     'Creating a new session',
-                                     self._session_file, ex)
+                    self._logger.exception('Failed to load session from "%s": '
+                                           '%s. Creating a new session',
+                                           self._session_file, ex)
 
             # There is no session file or we failed to load it
             self._session = requests.Session()
@@ -158,8 +158,8 @@ class Alooma(object):
                     with open(self._session_file, 'w+') as sf:
                         pickle.dump(self._session, sf)
                 except Exception as ex:
-                    logger.exception('Failed to store the session in a file: '
-                                     '%s', ex)
+                    self._logger.exception('Failed to store the session in a '
+                                           'file: %s', ex)
 
     @staticmethod
     def _response_is_ok(response):
@@ -168,3 +168,10 @@ class Alooma(object):
     @staticmethod
     def _parse_response_to_json(response):
         return json.loads(response.content.decode(DEFAULT_ENCODING))
+
+    @staticmethod
+    def _validate_argument_type(argument, arg_num, func_name, accepted_arg_type):
+        if not isinstance(argument, accepted_arg_type):
+            raise alooma_exceptions.ArgumentValidationError(
+                arg_num, func_name, accepted_arg_type)
+
