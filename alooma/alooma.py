@@ -803,6 +803,21 @@ class Alooma(object):
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False,
                             ssh_config=None):
+        """
+        Set Redshift output configuration
+        :param hostname: Output hostname
+        :param port: Output port
+        :param schema_name: Output schema
+        :param database_name: Output database name
+        :param username: Output username
+        :param password: Output password
+        :param skip_validation: :type bool. True for skip output configuration
+               validation, False for validate output configurations
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
+        :return: :type JSON. Response's content
+        """
         return self.set_output_config(hostname=hostname, port=port,
                                       schema_name=schema_name,
                                       database_name=database_name,
