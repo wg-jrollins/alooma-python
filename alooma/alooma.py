@@ -754,7 +754,7 @@ class Alooma(object):
 
     def set_output_config(self, hostname, port, schema_name, database_name,
                           username, password, skip_validation=False,
-                          sink_type=None, output_name=None):
+                          sink_type=None, output_name=None, ssh_config=None):
         """
         :param hostname: Output hostname
         :param port: Output port
@@ -766,6 +766,9 @@ class Alooma(object):
                validation, False for validate output configurations
         :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
         :param output_name: Output name that would displayed in the UI
+        :param ssh_config: Connect via SSH. :type dict,
+                           You can use get_ssh_config function to get the right
+                           structure
         :return: :type JSON. Response's content
         """
         output_node = self._get_node_by('category', 'OUTPUT')
@@ -786,6 +789,9 @@ class Alooma(object):
             'type': sink_type.upper(),
             'deleted': False
         }
+        if ssh_config:
+            payload['configuration']['ssh'] = json.dumps(ssh_config) \
+                if isinstance(ssh_config, dict) else ssh_config
         url = self.rest_url + 'plumbing/nodes/' + output_node['id']
 
         res = self.__send_request(requests.put, url, json=payload)
@@ -795,13 +801,15 @@ class Alooma(object):
         return self._get_node_by('type', REDSHIFT_TYPE)
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
-                            username, password, skip_validation=False):
+                            username, password, skip_validation=False,
+                            ssh_config=None):
         return self.set_output_config(hostname=hostname, port=port,
                                       schema_name=schema_name,
                                       database_name=database_name,
                                       username=username, password=password,
                                       skip_validation=skip_validation,
-                                      sink_type=REDSHIFT_TYPE)
+                                      sink_type=REDSHIFT_TYPE,
+                                      ssh_config=ssh_config)
 
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
@@ -929,6 +937,20 @@ class Alooma(object):
             if node[field] == value:
                 return node
         return None
+
+    @staticmethod
+    def get_ssh_config(ssh_server_ip, port, username=None,
+                       password=None):
+        ssh_config = {
+            'server': ssh_server_ip,
+            'port': port
+        }
+        if not username:
+            ssh_config['username'] = username
+        if not password:
+            ssh_config['password'] = password
+
+        return ssh_config
 
 
 def response_is_ok(response):
