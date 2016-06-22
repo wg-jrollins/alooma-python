@@ -954,11 +954,22 @@ class Alooma(object):
         return None
 
     @staticmethod
-    def get_ssh_config(ssh_server_ip, port, username=None,
+    def get_ssh_config(destination_server, destination_port, username=None,
                        password=None):
+        """
+        Get SSH configuration dictionary, for more information:
+        https://www.alooma.com/docs/integration/mysql-replication#/#connect-via-ssh
+        :param destination_server: IP or hostname of the destination SSH host
+        :param destination_port: PORT of the destination SSH host
+        :param username: Username of the destination SSH host, of not provided
+                         we use alooma
+        :param password: Password of the destination SSH host, of not provided
+                         we use alooma public key
+        :return: :type dict: SSH configuration dictionary
+        """
         ssh_config = {
-            'server': ssh_server_ip,
-            'port': port
+            'server': destination_server,
+            'port': destination_port
         }
         if not username:
             ssh_config['username'] = username
