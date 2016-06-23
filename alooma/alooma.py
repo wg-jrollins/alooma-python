@@ -769,12 +769,14 @@ class Alooma(object):
                                             Output configurations
         :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
         :param output_name: Output name that would displayed in the UI
-        :param ssh_server: SSH Server IP
-        :param ssh_port: SSH Server's port
-        :param ssh_username: SSH Username
-        :param ssh_password: SSH Username's password, if this not provided will
-                             use SSH public key.
-                             To get this key use get_public_ssh_key
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                             on the SSH server
         :return: :type dict. Response's content
         """
         output_node = self._get_node_by('category', 'OUTPUT')
@@ -974,32 +976,27 @@ class Alooma(object):
         return None
 
     @staticmethod
-    def __get_ssh_config(ssh_server=None, ssh_port=None,
-                         ssh_username=None, ssh_password=None):
+    def __get_ssh_config(ssh_server, ssh_port,
+                         ssh_username, ssh_password=None):
         """
         Get SSH configuration dictionary, for more information:
         https://www.alooma.com/docs/integration/mysql-replication#/#connect-via-ssh
         :param ssh_server: IP or hostname of the destination SSH host
-        :param ssh_port: PORT of the destination SSH host
-        :param ssh_username: Username of the destination SSH host, of not provided
-                         we use alooma
-        :param ssh_password: Password of the destination SSH host, of not provided
-                         we use alooma public key
+        :param ssh_port: Port of the destination SSH host
+        :param ssh_username: Username of the destination SSH host, if not
+                         provided we use alooma
+        :param ssh_password: Password of the destination SSH host, if not
+                             provided we use alooma public key
         :return: :type dict: SSH configuration dictionary
         """
-        if ssh_server and ssh_port and ssh_username:
-            ssh_config = {
-                'server': ssh_server,
-                'port': ssh_port,
-                'username': ssh_username
-            }
-            if ssh_password and ssh_username:
-                ssh_config['password'] = ssh_password
-            return ssh_config
-        if not any(arg for arg in [ssh_port, ssh_server, ssh_username]) and \
-                any(arg for arg in [ssh_port, ssh_server, ssh_username]):
-            raise Exception("ssh_server, ssh_port and ssh_username are required"
-                            " fields for setting SSH tunnel")
+        ssh_config = {
+            'server': ssh_server,
+            'port': ssh_port,
+            'username': ssh_username
+        }
+        if ssh_password and ssh_username:
+            ssh_config['password'] = ssh_password
+        return ssh_config
 
     @staticmethod
     def get_public_ssh_key():
