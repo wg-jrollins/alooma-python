@@ -754,24 +754,32 @@ class Alooma(object):
 
     def set_output_config(self, hostname, port, schema_name, database_name,
                           username, password, skip_validation=False,
-                          sink_type=None, output_name=None, ssh_config=None):
+                          sink_type=None, output_name=None, ssh_server=None,
+                          ssh_port=None, ssh_username=None, ssh_password=None):
         """
+        Set Output configuration
         :param hostname: Output hostname
         :param port: Output port
         :param schema_name: Output schema
         :param database_name: Output database name
         :param username: Output username
         :param password: Output password
-        :param skip_validation: :type bool. True for skip output configuration
-               validation, False for validate output configurations
+        :param skip_validation: :type bool: True for skip Output configuration
+                                            validation, False for validate
+                                            Output configurations
         :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
         :param output_name: Output name that would displayed in the UI
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
-        :return: :type JSON. Response's content
+        :param ssh_server: SSH Server IP
+        :param ssh_port: SSH Server's port
+        :param ssh_username: SSH Username
+        :param ssh_password: SSH Username's password, if this not provided will
+                             use SSH public key.
+                             To get this key use get_public_ssh_key
+        :return: :type dict. Response's content
         """
         output_node = self._get_node_by('category', 'OUTPUT')
+        name = output_name if output_name is not None else sink_type.title()
+
         payload = {
             'configuration': {
                 'hostname': hostname,
@@ -785,10 +793,14 @@ class Alooma(object):
             },
             'category': 'OUTPUT',
             'id': output_node['id'],
-            'name': output_name if output_name is not None else sink_type.title(),
+            'name': name,
             'type': sink_type.upper(),
             'deleted': False
         }
+        ssh_config = self.__get_ssh_config(ssh_server=ssh_server,
+                                           ssh_port=ssh_port,
+                                           ssh_username=ssh_username,
+                                           ssh_password=ssh_password)
         if ssh_config:
             payload['configuration']['ssh'] = json.dumps(ssh_config) \
                 if isinstance(ssh_config, dict) else ssh_config
@@ -802,21 +814,26 @@ class Alooma(object):
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False,
-                            ssh_config=None):
+                            ssh_server=None, ssh_port=None, ssh_username=None,
+                            ssh_password=None):
         """
-        Set Redshift Redshift configuration
+        Set Redshift configuration
         :param hostname: Redshift hostname
         :param port: Redshift port
         :param schema_name: Redshift schema
         :param database_name: Redshift database name
         :param username: Redshift username
         :param password: Redshift password
-        :param skip_validation: :type bool. True for skip Redshift configuration
-               validation, False for validate Redshift configurations
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
-        :return: :type JSON. Response's content
+        :param skip_validation: :type bool: True for skip Redshift configuration
+                                            validation, False for validate
+                                            Redshift configurations
+        :param ssh_server: SSH Server IP
+        :param ssh_port: SSH Server's port
+        :param ssh_username: SSH Username
+        :param ssh_password: SSH Username's password, if this not provided will
+                             use SSH public key. 
+                             To get this key use get_public_ssh_key
+        :return: :type dict. Response's content
         """
         return self.set_output_config(hostname=hostname, port=port,
                                       schema_name=schema_name,
@@ -824,7 +841,10 @@ class Alooma(object):
                                       username=username, password=password,
                                       skip_validation=skip_validation,
                                       sink_type=REDSHIFT_TYPE,
-                                      ssh_config=ssh_config)
+                                      ssh_server=ssh_server,
+                                      ssh_port=ssh_port,
+                                      ssh_username=ssh_username,
+                                      ssh_password=ssh_password)
 
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
@@ -954,29 +974,42 @@ class Alooma(object):
         return None
 
     @staticmethod
-    def get_ssh_config(destination_server, destination_port, username=None,
-                       password=None):
+    def __get_ssh_config(ssh_server=None, ssh_port=None,
+                         ssh_username=None, ssh_password=None):
         """
         Get SSH configuration dictionary, for more information:
         https://www.alooma.com/docs/integration/mysql-replication#/#connect-via-ssh
-        :param destination_server: IP or hostname of the destination SSH host
-        :param destination_port: PORT of the destination SSH host
-        :param username: Username of the destination SSH host, of not provided
+        :param ssh_server: IP or hostname of the destination SSH host
+        :param ssh_port: PORT of the destination SSH host
+        :param ssh_username: Username of the destination SSH host, of not provided
                          we use alooma
-        :param password: Password of the destination SSH host, of not provided
+        :param ssh_password: Password of the destination SSH host, of not provided
                          we use alooma public key
         :return: :type dict: SSH configuration dictionary
         """
-        ssh_config = {
-            'server': destination_server,
-            'port': destination_port
-        }
-        if not username:
-            ssh_config['username'] = username
-        if not password:
-            ssh_config['password'] = password
+        if ssh_server and ssh_port and ssh_username:
+            ssh_config = {
+                'server': ssh_server,
+                'port': ssh_port,
+                'username': ssh_username
+            }
+            if ssh_password and ssh_username:
+                ssh_config['password'] = ssh_password
+            return ssh_config
+        if not any(arg for arg in [ssh_port, ssh_server, ssh_username]) and \
+                any(arg for arg in [ssh_port, ssh_server, ssh_username]):
+            raise Exception("ssh_server, ssh_port and ssh_username are required"
+                            " fields for setting SSH tunnel")
 
-        return ssh_config
+    @staticmethod
+    def get_public_ssh_key():
+        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+t5OKwGcUGYRdDAC8ovblV" \
+               "/10AoBfuI/nmkxgRx0J+M3tIdTdxW0Layqb6Xtz8PMsxy1uhM+Rw6cXhU/FQW" \
+               "bOr7MB5hJUqXY5OI4NVtI+cc2diCyYUjgCIb7dBSKoyZecJqp3bQuekuZT/Ow" \
+               "Z40vLc42g6cUV01b5loV9pU9DvRl6zZXHyrE7fssJ90q2lhvuBjltU7g543bU" \
+               "klkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3mVEX/l4GDIsTkLIR" \
+               "zHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM/PdJJEHh65986tgprb" \
+               "I0Lz+geqYmASgF deploy@alooma.io"
 
 
 def response_is_ok(response):
