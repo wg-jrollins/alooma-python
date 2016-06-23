@@ -829,12 +829,14 @@ class Alooma(object):
         :param skip_validation: :type bool: True for skip Redshift configuration
                                             validation, False for validate
                                             Redshift configurations
-        :param ssh_server: SSH Server IP
-        :param ssh_port: SSH Server's port
-        :param ssh_username: SSH Username
-        :param ssh_password: SSH Username's password, if this not provided will
-                             use SSH public key. 
-                             To get this key use get_public_ssh_key
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                             on the SSH server
         :return: :type dict. Response's content
         """
         return self.set_output_config(hostname=hostname, port=port,
