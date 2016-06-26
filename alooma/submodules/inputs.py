@@ -66,6 +66,44 @@ class _Structure(object):
         self.create_input(configuration={}, input_name=input_name,
                           input_type="RESTAPI", one_click=one_click)
 
+    def create_elasticserarch_input(self, input_name, hostname, index, query="",
+                                    port=9200, replication_frequency=8,
+                                    ssh_server=None, ssh_port=None,
+                                    ssh_username=None, ssh_password=None,
+                                    one_click=False):
+        """
+        Create a new Elasticsearch input
+        :param input_name: Name your new input
+        :param hostname: Hostname or IP address of your Elasticsearch server
+        :param index: The name of the Elasticsearch index
+        :param query: An optional JSON query to be run on the index
+        :param port: Elasticsearch server's port
+        :param replication_frequency: Replication Frequency, every
+                                      replication_frequency hours
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                            from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                          the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                              SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        """
+        configuration = {
+            "port": port,
+            "pull_interval": replication_frequency,
+            "hostname": hostname,
+            "index": index,
+            "query": query
+        }
+        self.create_input(input_name=input_name, configuration=configuration,
+                          ssh_password=ssh_password, ssh_server=ssh_server,
+                          ssh_port=ssh_port, ssh_username=ssh_username,
+                          one_click=one_click, input_type='ELASTICSEARCH_INPUT')
+
     def create_mobile_sdk_input(self, input_name, one_click=False):
         """
         Create a new Mobile SDK input
@@ -137,7 +175,10 @@ class _Structure(object):
     def create_mssql_incremental_dump_load_input(self, input_name, server, port,
                                                  user, password, database,
                                                  schema, tables,
-                                                 ssh_config=None,
+                                                 ssh_server=None,
+                                                 ssh_port=None,
+                                                 ssh_username=None,
+                                                 ssh_password=None,
                                                  batch_size=10000,
                                                  one_click=False):
         """
@@ -155,9 +196,14 @@ class _Structure(object):
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                            from the public internet
+         :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                          the public internet (default port is 22)
+         :param ssh_username: (Optional) The user name on the SSH server for the
+                              SSH connection (the standard is alooma)
+         :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
                            increase the load on your Microsoft SQL server.
@@ -169,13 +215,15 @@ class _Structure(object):
         self.create_incremental_dump_load_input(
             db_type="mssql", input_name=input_name, server=server, port=port,
             user=user, password=password, database=database, schema=schema,
-            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
-            one_click=one_click)
+            tables=tables, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            batch_size=batch_size, one_click=one_click)
 
     def create_mssql_full_dump_load_replication_input(
             self, input_name, server, port, user, password, database, schema,
             tables, replication_frequency=5, start_time=datetime.time(5),
-            ssh_config=None, one_click=False):
+            ssh_server=None,  ssh_port=None, ssh_username=None,
+            ssh_password=None, one_click=False):
         """
         Create a new Microsoft SQL Server full dump\load input
         :param input_name: Name your new input
@@ -194,9 +242,14 @@ class _Structure(object):
         :param replication_frequency: Every how much time to replicate tables
         :param start_time: When to start running replication :type datetime
                            object that contains time attributes
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -206,7 +259,9 @@ class _Structure(object):
             'mssql', input_name=input_name, port=port, tables=tables,
             replication_frequency=replication_frequency, start_time=start_time,
             server=server, user=user, password=password, database=database,
-            schema=schema, ssh_config=ssh_config, one_click=one_click)
+            schema=schema, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            one_click=one_click)
 
     def create_mixpanel_input(self, input_name, mixpanel_api_key,
                               mixpanel_api_secret,
@@ -245,8 +300,9 @@ class _Structure(object):
                              username=None, password=None,
                              additional_connection_string=None,
                              collections_to_replicate=None,
-                             start_time=None, ssh_config=None,
-                             one_click=False):
+                             start_time=None, ssh_server=None,
+                             ssh_port=None, ssh_username=None,
+                             ssh_password=None, one_click=False):
         """
         Create a new MongoDB input
         :param input_name: Name your new input
@@ -265,13 +321,17 @@ class _Structure(object):
                                          for all collections
         :param start_time: If you also want to import historical events then
                            pass datetime.date (utc time) object (Optional)
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
-
         :return:
         """
         configuration = {
@@ -291,18 +351,17 @@ class _Structure(object):
             configuration['collections'] = collections_to_replicate
         if start_time:
             configuration['start_time'] = start_time.strftime(DATETIME_FORMAT)
-        if ssh_config:
-            configuration['ssh'] = json.dumps(ssh_config)
 
         self.create_input(configuration=configuration, input_type='MONGODB',
-                          input_name=input_name, one_click=one_click)
+                          input_name=input_name, one_click=one_click,
+                          ssh_server=ssh_server, ssh_port=ssh_port,
+                          ssh_username=ssh_username, ssh_password=ssh_password)
 
-    def create_mysql_incremental_dump_load_input(self, input_name, server,
-                                                 port, user, password, tables,
-                                                 database=None, schema=None,
-                                                 ssh_config=None,
-                                                 batch_size=10000,
-                                                 one_click=False):
+    def create_mysql_incremental_dump_load_input(
+            self, input_name, server, port, user, password, tables,
+            database=None, schema=None, ssh_server=None, ssh_port=None,
+            ssh_username=None, ssh_password=None, batch_size=10000,
+            one_click=False):
         """
         Create a new MySQL incremental dump\load input
         :param input_name: :type str. Name your new input
@@ -318,9 +377,14 @@ class _Structure(object):
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
                            increase the load on your MySQL.
@@ -335,13 +399,15 @@ class _Structure(object):
         self.create_incremental_dump_load_input(
             db_type='mysql', input_name=input_name, server=server, port=port,
             user=user, password=password, database=database, schema=schema,
-            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
-            one_click=one_click)
+            tables=tables, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            batch_size=batch_size, one_click=one_click)
 
     def create_mysql_full_dump_load_replication_input(
             self, input_name, server, port, user, password, tables,
             replication_frequency, start_time, schema=None, database=None,
-            ssh_config=None, one_click=False):
+            ssh_server=None,  ssh_port=None, ssh_username=None,
+            ssh_password=None,one_click=False):
         """
         Create a new MySQL full dump\load input
         :param input_name: Name your new input
@@ -359,9 +425,14 @@ class _Structure(object):
                            object that contains time attributes
         :param database: Database name to replicate
         :param schema: Schema name
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -374,11 +445,14 @@ class _Structure(object):
             db_type='mysql', input_name=input_name, port=port, tables=tables,
             replication_frequency=replication_frequency, start_time=start_time,
             server=server, user=user, password=password, schema=schema,
-            ssh_config=ssh_config, database=database, one_click=one_click)
+            ssh_server=ssh_server, ssh_port=ssh_port, ssh_username=ssh_username,
+            ssh_password=ssh_password, database=database, one_click=one_click)
 
     def create_mysql_log_replication_input(self, input_name, server, port,
                                            user, password, tables=None,
-                                           ssh_config=None, one_click=False):
+                                           ssh_server=None,  ssh_port=None,
+                                           ssh_username=None, ssh_password=None,
+                                           one_click=False):
         """
         Create a new MySQL log replication input
         :param input_name: Name your new input
@@ -392,9 +466,14 @@ class _Structure(object):
         :param tables: List of Tables to Replicate :type list or str space
                                                          separated list of table
                                                          names
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -408,15 +487,18 @@ class _Structure(object):
             "tables_to_replicate": " ".join(tables),
             "replication_type": "log_dump_load"
         }
-        if ssh_config:
-            configuration['ssh'] = json.dumps(ssh_config)
         self.create_input(configuration=configuration, input_name=input_name,
-                          input_type="MYSQL", one_click=one_click)
+                          input_type="MYSQL", ssh_server=ssh_server,
+                          ssh_port=ssh_port, ssh_username=ssh_username,
+                          ssh_password=ssh_password, one_click=one_click)
 
     def create_oracle_incremental_dump_load_input(self, input_name, server,
                                                   port, user, password,
                                                   database, tables,
-                                                  ssh_config=None,
+                                                  ssh_server=None,
+                                                  ssh_port=None,
+                                                  ssh_username=None,
+                                                  ssh_password=None,
                                                   batch_size=10000,
                                                   one_click=False):
         """
@@ -432,9 +514,14 @@ class _Structure(object):
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
                            increase the load on your Oracle server.
@@ -446,13 +533,15 @@ class _Structure(object):
         self.create_incremental_dump_load_input(
             db_type="oracle", input_name=input_name, server=server, port=port,
             user=user, password=password, database=database,
-            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
-            one_click=one_click)
+            tables=tables, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            batch_size=batch_size, one_click=one_click)
 
     def create_oracle_full_dump_load_replication_input(
             self, input_name, server, port, user, password, database,
             tables, replication_frequency=5, start_time=datetime.time(5),
-            ssh_config=None, one_click=False):
+            ssh_server=None,  ssh_port=None, ssh_username=None,
+            ssh_password=None, one_click=False):
         """
         Create a new Oracle full dump\load input
         :param input_name: Name your new input
@@ -469,9 +558,14 @@ class _Structure(object):
         :param replication_frequency: Every how much time to replicate tables
         :param start_time: When to start running replication :type datetime
                            object that contains time attributes
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -481,12 +575,14 @@ class _Structure(object):
             'oracle', input_name=input_name, port=port, tables=tables,
             replication_frequency=replication_frequency, start_time=start_time,
             server=server, user=user, password=password, database=database,
-            ssh_config=ssh_config, one_click=one_click)
+            ssh_server=ssh_server, ssh_port=ssh_port, ssh_username=ssh_username,
+            ssh_password=ssh_password, one_click=one_click)
 
     def create_psql_full_dump_load_replication_input(
             self, input_name, server, port, user, password, database, schema,
             tables, replication_frequency=5, start_time=datetime.time(5),
-            ssh_config=None, one_click=False):
+            ssh_server=None, ssh_port=None, ssh_username=None,
+            ssh_password=None, one_click=False):
         """
         Create a new PostgreSQL full dump\load input
         :param input_name: Name your new input
@@ -503,9 +599,14 @@ class _Structure(object):
         :param replication_frequency: Every how much time to replicate tables
         :param start_time: When to start running replication :type datetime
                            object that contains time attributes
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -515,11 +616,16 @@ class _Structure(object):
             'psql', input_name=input_name, port=port, tables=tables,
             replication_frequency=replication_frequency, start_time=start_time,
             server=server, user=user, password=password, database=database,
-            schema=schema, ssh_config=ssh_config, one_click=one_click)
+            schema=schema, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            one_click=one_click)
 
     def create_psql_incremental_dump_load_input(self, input_name, server, port,
                                                 user, password, database,
-                                                schema, tables, ssh_config=None,
+                                                schema, tables, ssh_server=None,
+                                                ssh_port=None,
+                                                ssh_username=None,
+                                                ssh_password=None,
                                                 batch_size=10000,
                                                 one_click=False):
         """
@@ -534,9 +640,14 @@ class _Structure(object):
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
                            increase the load on your PostgreSQL server.
@@ -548,13 +659,16 @@ class _Structure(object):
         self.create_incremental_dump_load_input(
             db_type="psql", input_name=input_name, server=server, port=port,
             user=user, password=password, database=database, schema=schema,
-            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
+            tables=tables, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            batch_size=batch_size,
             one_click=one_click)
 
     def create_psql_log_replication_input(self, input_name, server, port,
                                           user, password, database, schema,
-                                          slot_name, tables="",
-                                          ssh_config=None, one_click=False):
+                                          slot_name, tables="", ssh_server=None,
+                                          ssh_port=None, ssh_username=None,
+                                          ssh_password=None, one_click=False):
         """
         Create a new PostgreSQL log replication input
         :param input_name: Name your new input
@@ -568,9 +682,14 @@ class _Structure(object):
         :param slot_name: Logical replication slot name
         :param tables: A space separated list of table names or list of table
                        names
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -590,9 +709,9 @@ class _Structure(object):
             "port": port,
             "schema": schema
         }
-        if ssh_config:
-            configuration['ssh'] = json.dumps(ssh_config)
-        self.create_input(configuration, input_name, "POSTGRESQL", one_click)
+        self.create_input(configuration, input_name, "POSTGRESQL", one_click,
+                          ssh_server=ssh_server, ssh_port=ssh_port,
+                          ssh_username=ssh_username, ssh_password=ssh_password)
 
     def create_python_sdk_input(self, input_name, one_click=False):
         """
@@ -607,7 +726,8 @@ class _Structure(object):
 
     def create_rds_heroku_psql_incremental_dump_load_input(
             self, input_name, server, port, user, password, database, schema,
-            tables, batch_size=10000, ssh_config=None, one_click=False):
+            tables, batch_size=10000, ssh_server=None,  ssh_port=None,
+            ssh_username=None, ssh_password=None,one_click=False):
         """
         Create a new RDS/Heroku PostgreSQL incremental dump\load input
         :param input_name: Name your new input
@@ -622,12 +742,17 @@ class _Structure(object):
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
                            increase the load on your RDS/Heroku PostgreSQL server.
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -636,13 +761,15 @@ class _Structure(object):
         self.create_incremental_dump_load_input(
             db_type="psql", input_name=input_name, server=server, port=port,
             user=user, password=password, database=database, schema=schema,
-            tables=tables, ssh_config=ssh_config, batch_size=batch_size,
-            one_click=one_click)
+            tables=tables, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            batch_size=batch_size, one_click=one_click)
 
     def create_rds_heroku_psql_full_dump_load_replication_input(
             self, input_name, server, port, user, password, database, schema,
             tables, replication_frequency=5, start_time=datetime.time(5),
-            ssh_config=None, one_click=False):
+            ssh_server=None, ssh_port=None, ssh_username=None,
+            ssh_password=None, one_click=False):
         """
         Create a new RDS/Heroku PostgreSQL full dump\load input
         :param input_name: Name your new input
@@ -660,9 +787,14 @@ class _Structure(object):
         :param replication_frequency: Every how much time to replicate tables
         :param start_time: When to start running replication :type datetime
                            object that contains time attributes
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -672,7 +804,9 @@ class _Structure(object):
             'psql', input_name=input_name, port=port, tables=tables,
             replication_frequency=replication_frequency, start_time=start_time,
             server=server, user=user, password=password, database=database,
-            schema=schema, ssh_config=ssh_config, one_click=one_click)
+            schema=schema, ssh_server=ssh_server, ssh_port=ssh_port,
+            ssh_username=ssh_username, ssh_password=ssh_password,
+            one_click=one_click)
 
     def create_s3_json_lines_input(self, input_name, key, secret, bucket,
                                    prefix='', all_files=False, one_click=False):
@@ -838,10 +972,33 @@ class _Structure(object):
                           input_type='SALESFORCE',
                           one_click=one_click)
 
+    def create_segment_input(self, input_name, one_click=False):
+        """
+        Create a new Segment input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          input_type="SEGMENT", one_click=one_click)
+
+    def create_server_logs_input(self, input_name, one_click=False):
+        """
+        Create a new Server Logs input
+        :param input_name: Name your new input
+        :param one_click: :type bool. Define whether Alooma will map this
+                                      input's events to your target database, or
+                                      you'll define your own mapping.
+        """
+        self.create_input(configuration={}, input_name=input_name,
+                          input_type="AGENT", one_click=one_click)
+
     def create_incremental_dump_load_input(self, db_type, input_name, server,
                                            port, user, password, tables,
                                            database=None, schema=None,
-                                           ssh_config=None,
+                                           ssh_server=None,  ssh_port=None,
+                                           ssh_username=None, ssh_password=None,
                                            batch_size=10000, one_click=False):
         """
         Create a new Incremental dump\load input
@@ -858,9 +1015,14 @@ class _Structure(object):
                        columns
         :param database: Database name to replicate
         :param schema: Schema name
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
                            increase the load on your server.
@@ -881,19 +1043,20 @@ class _Structure(object):
             "tables": json.dumps(tables),
             "batch_size": batch_size
         }
-        if ssh_config:
-            configuration['ssh'] = json.dumps(ssh_config)
         if schema:
             configuration['schema'] = schema
         if database:
             configuration['database'] = database
 
-        self.create_input(configuration, input_name, "ODBC", one_click)
+        self.create_input(configuration, input_name, "ODBC", one_click,
+                          ssh_server=ssh_server,  ssh_port=ssh_port,
+                          ssh_username=ssh_username, ssh_password=ssh_password)
 
     def create_full_dump_load_replication_input(
             self, db_type, input_name, server, port, user, password,
             tables, replication_frequency, start_time,
-            database=None, schema=None, ssh_config=None, one_click=False):
+            database=None, schema=None, ssh_server=None,  ssh_port=None,
+            ssh_username=None, ssh_password=None, one_click=False):
         """
         Create a new full dump\load input
         :param db_type: odbc input type
@@ -911,9 +1074,14 @@ class _Structure(object):
                            object that contains time attributes
         :param database: Database name to replicate
         :param schema: Schema name
-        :param ssh_config: Connect via SSH. :type dict,
-                           You can use get_ssh_config function to get the right
-                           structure
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping.
@@ -940,24 +1108,31 @@ class _Structure(object):
             "user": user,
             "password": password
         }
-        if ssh_config:
-            configuration['ssh'] = json.dumps(ssh_config)
         if schema:
             configuration['schema'] = schema
         if database:
             configuration['database'] = database
 
         self.create_input(configuration, input_name=input_name,
-                          input_type="ODBC", one_click=one_click)
+                          input_type="ODBC", ssh_server=ssh_server,
+                          ssh_port=ssh_port, ssh_username=ssh_username,
+                          ssh_password=ssh_password, one_click=one_click)
 
     def create_input(self, configuration, input_name, input_type,
-                     one_click=False):
+                     one_click=False, ssh_server=None,  ssh_port=None,
+                     ssh_username=None, ssh_password=None):
         """
         :param input_name: Name your new input
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
                                       you'll define your own mapping. 
         """
+        ssh_config = self.__get_ssh_config(
+            ssh_server=ssh_server, ssh_port=ssh_port, ssh_username=ssh_username,
+            ssh_password=ssh_password)
+        if ssh_config:
+            configuration["ssh"] = json.dumps(ssh_config)
+
         if input_type not in self.get_input_types():
             raise alooma_exceptions.FailedToCreateInputException(
                 "Input type must be one of '%s', you tried to add '%s'" % (
@@ -1117,17 +1292,38 @@ class _Structure(object):
         return token.json()["token"]
 
     @staticmethod
-    def get_ssh_config(ssh_server_ip, port, username=None,
-                       password=None):
-        ssh_config = {
-            'server': ssh_server_ip,
-            'port': port
-        }
-        if not username:
-            ssh_config['username'] = username
-        if not password:
-            ssh_config['password'] = password
+    def __get_ssh_config(ssh_server, ssh_port, ssh_username, ssh_password=None):
+        """
+        Get SSH configuration dictionary
+        :param ssh_server: IP or hostname of the destination SSH host
+        :param ssh_port: Port of the destination SSH host
+        :param ssh_username: Username of the destination SSH host, if not
+                         provided we use alooma
+        :param ssh_password: Password of the destination SSH host, if not
+                             provided we use alooma public key
+        :return: :type dict: SSH configuration dictionary
+        """
+        if ssh_server and ssh_port and ssh_username:
+            ssh_config = {
+                'server': ssh_server,
+                'port': ssh_port,
+                'username': ssh_username
+            }
+            if ssh_password and ssh_username:
+                ssh_config['password'] = ssh_password
+            return ssh_config
+        else:
+            return {}
 
-        return ssh_config
+    @staticmethod
+    def get_public_ssh_key():
+        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+t5OKwGcUGYRdDAC8ovblV" \
+               "/10AoBfuI/nmkxgRx0J+M3tIdTdxW0Layqb6Xtz8PMsxy1uhM+Rw6cXhU/FQW" \
+               "bOr7MB5hJUqXY5OI4NVtI+cc2diCyYUjgCIb7dBSKoyZecJqp3bQuekuZT/Ow" \
+               "Z40vLc42g6cUV01b5loV9pU9DvRl6zZXHyrE7fssJ90q2lhvuBjltU7g543bU" \
+               "klkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3mVEX/l4GDIsTkLIR" \
+               "zHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM/PdJJEHh65986tgprb" \
+               "I0Lz+geqYmASgF deploy@alooma.io"
+
 
 SUBMODULE_CLASS = _Structure
