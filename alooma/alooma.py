@@ -169,9 +169,3 @@ class Alooma(object):
     def _parse_response_to_json(response):
         return json.loads(response.content.decode(DEFAULT_ENCODING))
 
-    @staticmethod
-    def _validate_argument_type(argument, arg_num, func_name, accepted_arg_type):
-        if not isinstance(argument, accepted_arg_type):
-            raise alooma_exceptions.ArgumentValidationError(
-                arg_num, func_name, accepted_arg_type)
-

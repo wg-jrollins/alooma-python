@@ -18,7 +18,7 @@ DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 class _Structure(object):
     def __init__(self, api):
-        self.__api = api
+        self.api = api
 
     def get_throughput_by_name(self, name):
         structure = self.get_structure()
@@ -1148,10 +1148,10 @@ class _Structure(object):
         previous_nodes = [x for x in structure['nodes']
                           if x[POST_DATA_NAME] == post_data[POST_DATA_NAME]]
 
-        url = self.__api._rest_url + 'plumbing/inputs?%s' % urllib.urlencode(
+        url = self.api._rest_url + 'plumbing/inputs?%s' % urllib.urlencode(
             {'autoMap': one_click})
 
-        self.__api._send_request(requests.post, url, json=post_data)
+        self.api._send_request(requests.post, url, json=post_data)
 
         retries_left = 10
         while retries_left > 0:
@@ -1181,12 +1181,12 @@ class _Structure(object):
             return transform_node['id']
 
         raise Exception('Could not locate transform id for %s' %
-                        self.__api.hostname)
+                        self.api.hostname)
 
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
-                rest_url=self.__api._rest_url, input_id=input_id)
-        self.__api._send_request(requests.post, url)
+                rest_url=self.api._rest_url, input_id=input_id)
+        self.api._send_request(requests.post, url)
 
     def _get_node_by(self, field, value):
         """
@@ -1209,9 +1209,9 @@ class _Structure(object):
         and on-stream processors currently configured in the system
         :return: A dict representing the structure of the system
         """
-        url_get = self.__api._rest_url + 'plumbing/?resolution=1min'
-        response = self.__api._send_request(requests.get, url_get)
-        return self.__api._parse_response_to_json(response)
+        url_get = self.api._rest_url + 'plumbing/?resolution=1min'
+        response = self.api._send_request(requests.get, url_get)
+        return self.api._parse_response_to_json(response)
 
     def get_plumbing(self):
         """
@@ -1257,8 +1257,8 @@ class _Structure(object):
         :param input_id:    ID of the input whose sleep time to return
         :return:            sleep time of the input with ID input_id
         """
-        url = self.__api._rest_url + 'inputSleepTime/%s' % input_id
-        res = self.__api._send_request(requests.get, url)
+        url = self.api._rest_url + 'inputSleepTime/%s' % input_id
+        res = self.api._send_request(requests.get, url)
         return float(json.loads(res.content).get('inputSleepTime'))
 
     def set_input_sleep_time(self, input_id, sleep_time):
@@ -1267,34 +1267,35 @@ class _Structure(object):
         :param sleep_time:  new sleep time to set for input with ID input_id
         :return:            result of the REST request
         """
-        url = self.__api._rest_url + 'inputSleepTime/%s' % input_id
-        res = self.__api._send_request(requests.put, url, data=str(sleep_time))
+        url = self.api._rest_url + 'inputSleepTime/%s' % input_id
+        res = self.api._send_request(requests.put, url, data=str(sleep_time))
         return res
 
     def get_input_structure(self, name):
         url = "%splumbing/nodes/%s" % (
-            self.__api._rest_url, self._get_input_node_ids(name))
-        res = self.__api._send_request(requests.get, url)
+            self.api._rest_url, self._get_input_node_ids(name))
+        res = self.api._send_request(requests.get, url)
         return json.loads(res.content)
 
     def get_input_types(self):
-        url = self.__api._rest_url + "plumbing/types"
-        res = self.__api._send_request(requests.get, url).json()
+        url = self.api._rest_url + "plumbing/types"
+        res = self.api._send_request(requests.get, url).json()
         return res["INPUT"]
 
     def _get_input_node_ids(self, name):
         return self._get_node_by("name", name)["id"]
 
     def get_token(self, input_name, input_type):
-        url = self.__api._rest_url + 'token?inputLabel=%s&inputType=%s' % (
+        url = self.api._rest_url + 'token?inputLabel=%s&inputType=%s' % (
             input_name, input_type.upper())
-        token = self.__api._send_request(requests.get, url)
+        token = self.api._send_request(requests.get, url)
         return token.json()["token"]
 
     @staticmethod
     def __get_ssh_config(ssh_server, ssh_port, ssh_username, ssh_password=None):
         """
-        Get SSH configuration dictionary
+        Get SSH configuration dictionary, for more information:
+        https://www.alooma.com/docs/integration/mysql-replication#/#connect-via-ssh
         :param ssh_server: IP or hostname of the destination SSH host
         :param ssh_port: Port of the destination SSH host
         :param ssh_username: Username of the destination SSH host, if not
@@ -1303,17 +1304,15 @@ class _Structure(object):
                              provided we use alooma public key
         :return: :type dict: SSH configuration dictionary
         """
+        ssh_config = {}
         if ssh_server and ssh_port and ssh_username:
-            ssh_config = {
-                'server': ssh_server,
-                'port': ssh_port,
-                'username': ssh_username
-            }
-            if ssh_password and ssh_username:
+            ssh_config['server'] = ssh_server
+            ssh_config['port'] = ssh_port
+            ssh_config['username'] = ssh_username
+            if ssh_password:
                 ssh_config['password'] = ssh_password
-            return ssh_config
-        else:
-            return {}
+
+        return ssh_config
 
     @staticmethod
     def get_public_ssh_key():

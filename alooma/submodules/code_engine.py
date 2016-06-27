@@ -7,7 +7,7 @@ DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
 
 class _CodeEngine(object):
     def __init__(self, api):
-        self.__api = api
+        self.api = api
 
     def get_samples_status_codes(self):
         """
@@ -16,8 +16,8 @@ class _CodeEngine(object):
                     status codes may be added. These status codes are used for
                     sampling events according to the events' type & status.
         """
-        url = self.__api._rest_url + 'status-types'
-        res = self.__api._send_request(requests.get, url)
+        url = self.api._rest_url + 'status-types'
+        res = self.api._send_request(requests.get, url)
         return json.loads(res.content)
     
     def get_samples_stats(self):
@@ -26,8 +26,8 @@ class _CodeEngine(object):
                     and each value is another dictionary which maps from status
                     code to the amount of samples for that event type & status
         """
-        url = self.__api._rest_url + 'samples/stats'
-        res = self.__api._send_request(requests.get, url)
+        url = self.api._rest_url + 'samples/stats'
+        res = self.api._send_request(requests.get, url)
         return json.loads(res.content.decode())
     
     def get_samples(self, event_type=None, error_codes=None):
@@ -40,12 +40,12 @@ class _CodeEngine(object):
                     of that event type will be returned. if error_codes is given
                     only samples of those status codes are returned.
         """
-        url = self.__api._rest_url + 'samples'
+        url = self.api._rest_url + 'samples'
         if event_type:
             url += '?eventType=%s' % event_type
         if error_codes and isinstance(error_codes, list):
             url += ''.join(['&status=%s' % ec for ec in error_codes])
-        res = self.__api._send_request(requests.get, url)
+        res = self.api._send_request(requests.get, url)
         return json.loads(res.content)
     
     def get_code(self):
@@ -53,14 +53,14 @@ class _CodeEngine(object):
         Returns the currently deployed code from the Alooma Code Engine
         :return: A str representation of the deployed code
         """
-        url = self.__api._rest_url + 'transform/functions/main'
+        url = self.api._rest_url + 'transform/functions/main'
         try:
-            res = self.__api._send_request(requests.get, url)
-            return self.__api._parse_response_to_json(res)["code"]
+            res = self.api._send_request(requests.get, url)
+            return self.api._parse_response_to_json(res)["code"]
         except:
-            defaults_url = self.__api._rest_url + 'transform/defaults'
-            res = self.__api._send_request(requests.get, defaults_url)
-            return self.__api._parse_response_to_json(res)["PYTHON"]
+            defaults_url = self.api._rest_url + 'transform/defaults'
+            res = self.api._send_request(requests.get, defaults_url)
+            return self.api._parse_response_to_json(res)["PYTHON"]
     
     def deploy_code(self, code):
         """
@@ -73,8 +73,8 @@ class _CodeEngine(object):
         """
         data = {'language': 'PYTHON', 'code': code,
                 'functionName': 'main'}
-        url = self.__api._rest_url + 'transform/functions/main'
-        res = self.__api._send_request(requests.post, url, json=data)
+        url = self.api._rest_url + 'transform/functions/main'
+        res = self.api._send_request(requests.post, url, json=data)
         return res
 
     def deploy_default_code(self):
@@ -98,7 +98,7 @@ class _CodeEngine(object):
                             'result' - the resulting event
                             'runtime' - millis it took the function to run
         """
-        url = self.__api._rest_url + 'transform/functions/run'
+        url = self.api._rest_url + 'transform/functions/run'
         if temp_transform is None:
             temp_transform = self.get_code()
         if not isinstance(sample, dict):
@@ -109,7 +109,7 @@ class _CodeEngine(object):
             'code': temp_transform,
             'sample': sample
         }
-        res = self.__api._send_request(requests.post, url, json=data)
+        res = self.api._send_request(requests.post, url, json=data)
         return json.loads(res.content)
     
     def test_transform_all_samples(self, event_type=None, status_code=None):

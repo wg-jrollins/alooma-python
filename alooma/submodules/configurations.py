@@ -12,7 +12,7 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 
 class _Configurations(object):
     def __init__(self, api):
-        self.__api = api
+        self.api = api
 
     def get_config(self):
         """
@@ -20,9 +20,9 @@ class _Configurations(object):
         This is also used periodically by Alooma for backup purposes,
         :return: a dict representation of the system configuration
         """
-        url_get = self.__api._rest_url + 'config/export'
-        response = self.__api._send_request(requests.get, url=url_get)
-        config_export = self.__api._parse_response_to_json(response)
+        url_get = self.api._rest_url + 'config/export'
+        response = self.api._send_request(requests.get, url=url_get)
+        config_export = self.api._parse_response_to_json(response)
         return config_export
 
     def clean_system(self):
@@ -31,28 +31,28 @@ class _Configurations(object):
         and returns it to its factory settings. It usually should not
         be used in production machines!
         """
-        self.__api.code_engine.deploy_default_code()
-        self.__api.restream.clean_restream_queue()
-        self.__api.structure.remove_all_inputs()
-        self.__api.mapper.delete_all_event_types()
-        self.__api.notifications.set_settings_email_notifications(
+        self.api.code_engine.deploy_default_code()
+        self.api.restream.clean_restream_queue()
+        self.api.structure.remove_all_inputs()
+        self.api.mapper.delete_all_event_types()
+        self.api.notifications.set_settings_email_notifications(
                 DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS)
         self.delete_s3_retention()
 
     def get_users(self):
-        url = self.__api._rest_url + 'users/'
+        url = self.api._rest_url + 'users/'
 
-        res = self.__api._send_request(requests.get, url)
-        return self.__api._parse_response_to_json(res)
+        res = self.api._send_request(requests.get, url)
+        return self.api._parse_response_to_json(res)
 
     def get_settings(self):
-        url = self.__api._rest_url + 'settings/'
+        url = self.api._rest_url + 'settings/'
 
-        res = self.__api._send_request(requests.get, url)
-        return self.__api._parse_response_to_json(res)
+        res = self.api._send_request(requests.get, url)
+        return self.api._parse_response_to_json(res)
 
     def delete_s3_retention(self):
-        url = self.__api._rest_url + "settings/s3-retention"
-        self.__api._send_request(requests.delete, url)
+        url = self.api._rest_url + "settings/s3-retention"
+        self.api._send_request(requests.delete, url)
 
 SUBMODULE_CLASS = _Configurations

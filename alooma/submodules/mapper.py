@@ -11,7 +11,7 @@ MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
 
 class _Mapper(object):
     def __init__(self, api):
-        self.__api = api
+        self.api = api
 
     def get_mapping_mode(self):
         """
@@ -19,8 +19,8 @@ class _Mapper(object):
         The mapping mode should be one of the values in
         alooma._mapper.MAPPING_MODES
         """
-        url = self.__api._rest_url + 'mapping-mode'
-        res = self.__api._send_request(requests.get, url)
+        url = self.api._rest_url + 'mapping-mode'
+        res = self.api._send_request(requests.get, url)
         return res.content.replace('"', '')
 
     def set_mapping_mode(self, flexible):
@@ -28,8 +28,8 @@ class _Mapper(object):
         Sets the default mapping mode in the system. The mapping
         mode should be one of the values in alooma._mapper.MAPPING_MODES
         """
-        url = self.__api._rest_url + 'mapping-mode'
-        res = self.__api._send_request(
+        url = self.api._rest_url + 'mapping-mode'
+        res = self.api._send_request(
             requests.post, url, json='FLEXIBLE' if flexible else 'STRICT')
         return res
 
@@ -54,9 +54,9 @@ class _Mapper(object):
         if prefix:
             table_name = '%s_%s' % (prefix.lower(), table_name)
         quoted_type = moves.urllib.parse.quote(event_type)
-        url = '%s/event-types/%s/auto-map' % (self.__api._rest_url, quoted_type)
+        url = '%s/event-types/%s/auto-map' % (self.api._rest_url, quoted_type)
         auto_map = json.loads(
-            self.__api._send_request(requests.post, url).content)
+            self.api._send_request(requests.post, url).content)
         auto_map['mapping']['tableName'] = \
             table_name if table_name else event_type
         auto_map['state'] = 'MAPPED'
@@ -80,7 +80,7 @@ class _Mapper(object):
         """
 
         field = self.get_field_in_schema(schema, field_path, True)
-        self.__api.set_mapping_for_field(field, column_name, field_type,
+        self.api.set_mapping_for_field(field, column_name, field_type,
                                          non_null, **type_attributes)
 
     def delete_all_event_types(self):
@@ -90,16 +90,16 @@ class _Mapper(object):
 
     def delete_event_type(self, event_type):
         event_type = moves.urllib.parse.quote(event_type, safe='')
-        url = self.__api._rest_url + 'event-types/{event_type}' \
+        url = self.api._rest_url + 'event-types/{event_type}' \
             .format(event_type=event_type)
 
-        self.__api._send_request(requests.delete, url)
+        self.api._send_request(requests.delete, url)
 
     def get_all_event_types(self, with_mapping=True):
-        url = self.__api._rest_url + 'event-types'
-        res = self.__api._send_request(requests.get, url)
+        url = self.api._rest_url + 'event-types'
+        res = self.api._send_request(requests.get, url)
         event_types_names = [event_type["name"] for event_type in
-                             self.__api._parse_response_to_json(res)]
+                             self.api._parse_response_to_json(res)]
         if not with_mapping:
             return event_types_names
 
@@ -117,11 +117,11 @@ class _Mapper(object):
         :return: All the event types existing in the system, optionally
         filtered by source input name or type
         """
-        url = self.__api._rest_url + 'event-types'
-        res = self.__api._send_request(requests.get, url)
+        url = self.api._rest_url + 'event-types'
+        res = self.api._send_request(requests.get, url)
         input_name = re.compile(input_name_filter.lower()) \
             if input_name_filter else None
-        event_types = self.__api._parse_response_to_json(res)
+        event_types = self.api._parse_response_to_json(res)
         result = []
         if not (input_name_filter or input_type_filter):
             return event_types
@@ -157,10 +157,10 @@ class _Mapper(object):
         :return: A dict representation of the event-type's data
         """
         event_type = moves.urllib.parse.quote(event_type, safe='')
-        url = self.__api._rest_url + 'event-types/' + event_type
+        url = self.api._rest_url + 'event-types/' + event_type
 
-        res = self.__api._send_request(requests.get, url)
-        return self.__api._parse_response_to_json(res)
+        res = self.api._send_request(requests.get, url)
+        return self.api._parse_response_to_json(res)
 
     def discard_event_type(self, event_type):
         """
@@ -253,7 +253,7 @@ class _Mapper(object):
         elif create_if_missing:
             parent_field = schema
             for field in fields_list:
-                parent_field = self.__api.add_field(parent_field, field)
+                parent_field = self.api.add_field(parent_field, field)
             return parent_field
         else:
             # raise this if the field is not found,
@@ -305,16 +305,16 @@ class _Mapper(object):
         """
         table_name = mapping['mapping']['tableName']
         if create_table_if_missing:
-            table = [t['tableName'] for t in self.__api.redshift.get_tables()
+            table = [t['tableName'] for t in self.api.redshift.get_tables()
                      if t['tableName'] == table_name]
             if not table:
-                self.__api.redshift.create_table(
+                self.api.redshift.create_table(
                     table_name, self.table_structure_from_mapping(mapping))
 
         event_type = moves.urllib.parse.quote(event_type, safe='')
-        url = self.__api._rest_url + 'event-types/{event_type}/mapping'.format(
+        url = self.api._rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
-        res = self.__api._send_request(requests.post, url, json=mapping)
+        res = self.api._send_request(requests.post, url, json=mapping)
         return res
 
     @staticmethod
