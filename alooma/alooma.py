@@ -168,4 +168,3 @@ class Alooma(object):
     @staticmethod
     def _parse_response_to_json(response):
         return json.loads(response.content.decode(DEFAULT_ENCODING))
-

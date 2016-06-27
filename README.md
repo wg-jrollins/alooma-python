@@ -30,5 +30,3 @@ api = alooma.Alooma(hostname="<your sub-domain>.alooma.io", username="<your user
    api.restream.start_restream()
    ```
  - And many many more!
-
-
