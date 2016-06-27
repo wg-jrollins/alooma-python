@@ -991,17 +991,15 @@ class Alooma(object):
                              provided we use alooma public key
         :return: :type dict: SSH configuration dictionary
         """
+        ssh_config = {}
         if ssh_server and ssh_port and ssh_username:
-            ssh_config = {
-                'server': ssh_server,
-                'port': ssh_port,
-                'username': ssh_username
-            }
-            if ssh_password and ssh_username:
+            ssh_config['server'] = ssh_server
+            ssh_config['port'] = ssh_port
+            ssh_config['username'] = ssh_username
+            if ssh_password:
                 ssh_config['password'] = ssh_password
-            return ssh_config
-        else:
-            return {}
+
+        return ssh_config
 
     @staticmethod
     def get_public_ssh_key():
