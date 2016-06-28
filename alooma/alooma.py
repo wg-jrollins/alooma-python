@@ -7,6 +7,7 @@ import yaml
 
 import alooma_exceptions
 import submodules
+import submodules.consts
 
 try:
     with open('logging.conf') as f:
@@ -16,10 +17,6 @@ except IOError:
     logging.basicConfig(
             format='%(asctime)s [%(levelname)s] %(process)d %(name)s: '
                    '%(message)s')
-
-EVENT_DROPPING_TRANSFORM_CODE = 'def transform(event):\n\treturn None'
-
-DEFAULT_ENCODING = 'utf-8'
 
 
 class Alooma(object):
@@ -105,6 +102,8 @@ class Alooma(object):
         if response.status_code == 401 and not is_recheck:
             self.__login()
             return self._send_request(func, url, True, **kwargs)
+        # Raise exception with it's content and reason (Only if there reason
+        # contains something)
         raise Exception('The rest call to %s failed: %s' % (
             response.url, response.content + "\nReason: " + response.reason
             if response.reason else ""))
@@ -124,7 +123,7 @@ class Alooma(object):
 
     def __get_session(self):
         """
-        Gets a previous sessions if specified, otherwise logs into the Alooma
+        Gets a previous session if specified, otherwise logs into the Alooma
         server associated with this API instance
         """
         self._requests_params = {'timeout': 60}
@@ -167,4 +166,5 @@ class Alooma(object):
 
     @staticmethod
     def _parse_response_to_json(response):
-        return json.loads(response.content.decode(DEFAULT_ENCODING))
+        return json.loads(response.content.decode(submodules.consts.
+                                                  DEFAULT_ENCODING))

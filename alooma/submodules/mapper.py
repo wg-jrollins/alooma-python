@@ -6,9 +6,6 @@ import requests
 from six import moves
 
 
-MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
-
-
 class _Mapper(object):
     def __init__(self, api):
         self.api = api

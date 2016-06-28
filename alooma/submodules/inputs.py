@@ -8,12 +8,8 @@ import urllib
 import datetime
 
 import alooma_exceptions
-
-POST_DATA_CONFIGURATION = 'configuration'
-POST_DATA_NAME = 'name'
-POST_DATA_TYPE = 'type'
-DATE_FORMAT = '%Y-%m-%d'
-DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+from consts import POST_DATA_CONFIGURATION, POST_DATA_NAME, POST_DATA_TYPE, \
+    DATE_FORMAT, DATETIME_FORMAT
 
 
 class _Structure(object):
@@ -185,14 +181,14 @@ class _Structure(object):
         Create a new Microsoft SQL Server incremental dump\load input
         :param input_name: Name your new input
         :param server: Hostname or IP address of your Microsoft SQL server
-                       
-        :param port: Microsoft SQL server's port 
+
+        :param port: Microsoft SQL server's port
         :param user: User name to use when connecting to your Microsoft SQL
-                     server 
+                     server
         :param password: Password to use when connecting to your Microsoft SQL
-                         server 
-        :param database: Database name to replicate 
-        :param schema: Schema name 
+                         server
+        :param database: Database name to replicate
+        :param schema: Schema name
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
@@ -228,14 +224,14 @@ class _Structure(object):
         Create a new Microsoft SQL Server full dump\load input
         :param input_name: Name your new input
         :param server: Hostname or IP address of your Microsoft SQL server
-                       
-        :param port: Microsoft SQL server's port 
+
+        :param port: Microsoft SQL server's port
         :param user: User name to use when connecting to your Microsoft SQL
-                     server 
+                     server
         :param password: Password to use when connecting to your Microsoft SQL
-                         server 
-        :param database: Database name to replicate 
-        :param schema: Schema name 
+                         server
+        :param database: Database name to replicate
+        :param schema: Schema name
         :param tables: List of Tables to Replicate :type list or str space
                                                          separated list of table
                                                          names
@@ -366,12 +362,12 @@ class _Structure(object):
         Create a new MySQL incremental dump\load input
         :param input_name: :type str. Name your new input
         :param server: Hostname or IP address of your Microsoft SQL server
-                       
-        :param port: MySQL server's port 
+
+        :param port: MySQL server's port
         :param user: User name to use when connecting to your
-                     MySQL server 
+                     MySQL server
         :param password: Password to use when connecting to your
-                         MySQL server 
+                         MySQL server
         :param database: Database name to replicate
         :param schema: Schema name
         :param tables: Tables to replicate. :type dict which it's keys are the
@@ -411,12 +407,12 @@ class _Structure(object):
         """
         Create a new MySQL full dump\load input
         :param input_name: Name your new input
-        :param server: Hostname or IP address of your MySQL server 
-        :param port: Microsoft SQL server's port 
+        :param server: Hostname or IP address of your MySQL server
+        :param port: Microsoft SQL server's port
         :param user: User name to use when connecting to your
-                     MySQL server 
+                     MySQL server
         :param password: Password to use when connecting to your
-                         MySQL server 
+                         MySQL server
         :param tables: List of Tables to Replicate :type list or str space
                                                          separated list of table
                                                          names
@@ -457,12 +453,12 @@ class _Structure(object):
         Create a new MySQL log replication input
         :param input_name: Name your new input
         :param server: Hostname or IP address of your Microsoft SQL server
-                       
-        :param port: MySQL server's port 
+
+        :param port: MySQL server's port
         :param user: User name to use when connecting to your
-                     MySQL server 
+                     MySQL server
         :param password: Password to use when connecting to your
-                         MySQL server 
+                         MySQL server
         :param tables: List of Tables to Replicate :type list or str space
                                                          separated list of table
                                                          names
@@ -504,13 +500,13 @@ class _Structure(object):
         """
         Create a new Oracle incremental dump\load input
         :param input_name: Name your new input
-        :param server: Hostname or IP address of your Oracle server 
-        :param port: Oracle server's port 
+        :param server: Hostname or IP address of your Oracle server
+        :param port: Oracle server's port
         :param user: User name to use when connecting to your
-                     Oracle server 
+                     Oracle server
         :param password: Password to use when connecting to your
-                         Oracle server 
-        :param database: Database name to replicate 
+                         Oracle server
+        :param database: Database name to replicate
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator
                        columns
@@ -545,13 +541,13 @@ class _Structure(object):
         """
         Create a new Oracle full dump\load input
         :param input_name: Name your new input
-        :param server: Hostname or IP address of your Oracle 
-        :param port: Oracle server's port 
+        :param server: Hostname or IP address of your Oracle
+        :param port: Oracle server's port
         :param user: User name to use when connecting to your
-                     Oracle server 
+                     Oracle server
         :param password: Password to use when connecting to your
-                         Oracle server 
-        :param database: Database name to replicate 
+                         Oracle server
+        :param database: Database name to replicate
         :param tables: List of Tables to Replicate :type list or str space
                                                          separated list of table
                                                          names
@@ -731,13 +727,13 @@ class _Structure(object):
         """
         Create a new RDS/Heroku PostgreSQL incremental dump\load input
         :param input_name: Name your new input
-        :param server: Hostname or IP address of your RDS/Heroku PostgreSQL server 
-        :param port: RDS/Heroku PostgreSQL server's port 
+        :param server: Hostname or IP address of your RDS/Heroku PostgreSQL server
+        :param port: RDS/Heroku PostgreSQL server's port
         :param user: User name to use when connecting to your
-                     RDS/Heroku PostgreSQL server 
+                     RDS/Heroku PostgreSQL server
         :param password: Password to use when connecting to your
-                         RDS/Heroku PostgreSQL server 
-        :param database: Database name to replicate 
+                         RDS/Heroku PostgreSQL server
+        :param database: Database name to replicate
         :param schema: Schema name
         :param tables: Tables to replicate. :type dict which it's keys are the
                        tables names and the values are the update indicator

@@ -2,7 +2,7 @@ import json
 
 import requests
 
-DEFAULT_TRANSFORM_CODE = "def transform(event):\n\treturn event"
+import consts
 
 
 class _CodeEngine(object):
@@ -82,7 +82,7 @@ class _CodeEngine(object):
         Deploys the default code to the Code Engine, which makes it return
         events without transforming them.
         """
-        code = DEFAULT_TRANSFORM_CODE
+        code = consts.DEFAULT_TRANSFORM_CODE
         return self.deploy_code(code=code)
     
     def test_transform(self, sample, temp_transform=None):

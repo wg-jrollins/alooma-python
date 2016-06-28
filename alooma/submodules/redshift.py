@@ -1,8 +1,6 @@
 import requests
 import json
-
-RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
-REDSHIFT_TYPE = "REDSHIFT"
+from consts import REDSHIFT_TYPE
 
 
 class _Redshift(object):

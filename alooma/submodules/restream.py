@@ -1,6 +1,5 @@
 import requests
-
-RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
+from consts import RESTREAM_QUEUE_TYPE_NAME
 
 
 class _Restream(object):

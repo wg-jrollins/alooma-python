@@ -1,25 +1,5 @@
 import requests
-
-METRICS_LIST = [
-    'EVENT_SIZE_AVG',
-    'EVENT_SIZE_TOTAL',
-    'EVENT_PROCESSING_RATE',
-    'CPU_USAGE',
-    'MEMORY_CONSUMED',
-    'MEMORY_LEFT',
-    'INCOMING_EVENTS',
-    'RESTREAMED_EVENTS',
-    'UNMAPPED_EVENTS',
-    'IGNORED_EVENTS',
-    'ERROR_EVENTS',
-    'LOADED_EVENTS_RATE',
-    'LATENCY_AVG',
-    'LATENCY_PERCENTILE_50',
-    'LATENCY_PERCENTILE_95',
-    'LATENCY_MAX',
-    'EVENTS_IN_PIPELINE',
-    'EVENTS_IN_TRANSIT'
-]
+from consts import METRICS_LIST
 
 
 class _Metrics(object):

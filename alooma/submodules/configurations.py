@@ -1,13 +1,6 @@
 import requests
 
-DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
-    "digestInfo": True,
-    "digestWarning": True,
-    "digestError": True,
-    "digestFrequency": "DAILY",
-    "recipientsChanged": False,
-    "recipients": []
-}
+import consts
 
 
 class _Configurations(object):
@@ -36,7 +29,7 @@ class _Configurations(object):
         self.api.structure.remove_all_inputs()
         self.api.mapper.delete_all_event_types()
         self.api.notifications.set_settings_email_notifications(
-                DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS)
+                consts.DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS)
         self.delete_s3_retention()
 
     def get_users(self):
