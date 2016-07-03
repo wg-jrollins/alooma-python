@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from consts import REDSHIFT_TYPE
+from alooma.consts import REDSHIFT_TYPE
 
 
 class _Redshift(object):

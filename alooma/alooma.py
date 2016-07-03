@@ -6,9 +6,12 @@ import requests
 import yaml
 
 import alooma_exceptions
-import submodules
+from submodules import code_engine, configurations, inputs, mapper, \
+    metrics, notifications, redshift, restream
 import consts
 
+_SUBMODULES = [code_engine, configurations, inputs, mapper, metrics,
+               notifications, redshift, restream]
 
 try:
     with open('logging.conf') as f:
@@ -66,14 +69,13 @@ class Alooma(object):
         submodules subfolder. They must contain a 'SUBMODULE_CLASS'
         member pointing to the actual submodule class
         """
-        for module_name in submodules.SUBMODULES:
+        for mdl in _SUBMODULES:
             try:
-                submodule = getattr(submodules, module_name)
-                submodule_class = getattr(submodule, 'SUBMODULE_CLASS')
-                setattr(self, module_name, submodule_class(self))
+                submodule_class = getattr(mdl, 'SUBMODULE_CLASS')
+                setattr(self, mdl.__name__.split('.')[2], submodule_class(self))
             except Exception as ex:
                 self._logger.exception('The submodule "%s" could not be loaded.'
-                                       ' Exception: %s', module_name, ex)
+                                       ' Exception: %s', mdl, ex)
 
     def send_request(self, func, url, is_recheck=False, **kwargs):
         """
@@ -97,7 +99,7 @@ class Alooma(object):
 
         response = session_func(url, **params)
 
-        if self._response_is_ok(response):
+        if self.response_is_ok(response):
             return response
 
         if response.status_code == 401 and not is_recheck:
@@ -162,10 +164,10 @@ class Alooma(object):
                                            'file: %s', ex)
 
     @staticmethod
-    def _response_is_ok(response):
+    def response_is_ok(response):
         return 200 <= response.status_code < 300
 
     @staticmethod
-    def _parse_response_to_json(response):
+    def parse_response_to_json(response):
         return json.loads(response.content.decode(consts.
                                                   DEFAULT_ENCODING))

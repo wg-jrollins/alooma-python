@@ -12,7 +12,7 @@ setup(name='alooma',
       description='Alooma Python API',
       author='Yonatan Kiron',
       author_email='yonatan@alooma.com',
-      packages=['alooma'],
+      packages=['alooma', 'alooma.submodules'],
       install_requires=reqs,
       keywords=['alooma']
 )

@@ -1,6 +1,6 @@
 import requests
 
-from consts import RESTREAM_QUEUE_TYPE_NAME
+from alooma.consts import RESTREAM_QUEUE_TYPE_NAME
 
 
 class _Restream(object):

@@ -6,9 +6,9 @@ import urllib
 
 import requests
 
-import alooma_exceptions
-from consts import POST_DATA_CONFIGURATION, POST_DATA_NAME, POST_DATA_TYPE, \
-    DATE_FORMAT, DATETIME_FORMAT
+from alooma import alooma_exceptions
+from alooma.consts import POST_DATA_CONFIGURATION, POST_DATA_NAME, \
+    POST_DATA_TYPE, DATE_FORMAT, DATETIME_FORMAT
 
 
 class _Structure(object):

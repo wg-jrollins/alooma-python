@@ -1,6 +1,6 @@
 import requests
 
-from consts import METRICS_LIST
+from alooma.consts import METRICS_LIST
 
 
 class _Metrics(object):
