@@ -5,8 +5,9 @@ import pickle
 import requests
 import yaml
 
-import consts
 import alooma_exceptions
+import submodules
+import consts
 
 
 try:
