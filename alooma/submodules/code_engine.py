@@ -2,7 +2,7 @@ import json
 
 import requests
 
-import consts
+from alooma import consts
 
 
 class _CodeEngine(object):
@@ -16,8 +16,8 @@ class _CodeEngine(object):
                     status codes may be added. These status codes are used for
                     sampling events according to the events' type & status.
         """
-        url = self.api._rest_url + 'status-types'
-        res = self.api._send_request(requests.get, url)
+        url = self.api.rest_url + 'status-types'
+        res = self.api.send_request(requests.get, url)
         return json.loads(res.content)
     
     def get_samples_stats(self):
@@ -26,8 +26,8 @@ class _CodeEngine(object):
                     and each value is another dictionary which maps from status
                     code to the amount of samples for that event type & status
         """
-        url = self.api._rest_url + 'samples/stats'
-        res = self.api._send_request(requests.get, url)
+        url = self.api.rest_url + 'samples/stats'
+        res = self.api.send_request(requests.get, url)
         return json.loads(res.content.decode())
     
     def get_samples(self, event_type=None, error_codes=None):
@@ -40,12 +40,12 @@ class _CodeEngine(object):
                     of that event type will be returned. if error_codes is given
                     only samples of those status codes are returned.
         """
-        url = self.api._rest_url + 'samples'
+        url = self.api.rest_url + 'samples'
         if event_type:
             url += '?eventType=%s' % event_type
         if error_codes and isinstance(error_codes, list):
             url += ''.join(['&status=%s' % ec for ec in error_codes])
-        res = self.api._send_request(requests.get, url)
+        res = self.api.send_request(requests.get, url)
         return json.loads(res.content)
     
     def get_code(self):
@@ -53,14 +53,14 @@ class _CodeEngine(object):
         Returns the currently deployed code from the Alooma Code Engine
         :return: A str representation of the deployed code
         """
-        url = self.api._rest_url + 'transform/functions/main'
+        url = self.api.rest_url + 'transform/functions/main'
         try:
-            res = self.api._send_request(requests.get, url)
-            return self.api._parse_response_to_json(res)["code"]
+            res = self.api.send_request(requests.get, url)
+            return self.api.parse_response_to_json(res)["code"]
         except:
-            defaults_url = self.api._rest_url + 'transform/defaults'
-            res = self.api._send_request(requests.get, defaults_url)
-            return self.api._parse_response_to_json(res)["PYTHON"]
+            defaults_url = self.api.rest_url + 'transform/defaults'
+            res = self.api.send_request(requests.get, defaults_url)
+            return self.api.parse_response_to_json(res)["PYTHON"]
     
     def deploy_code(self, code):
         """
@@ -73,8 +73,8 @@ class _CodeEngine(object):
         """
         data = {'language': 'PYTHON', 'code': code,
                 'functionName': 'main'}
-        url = self.api._rest_url + 'transform/functions/main'
-        res = self.api._send_request(requests.post, url, json=data)
+        url = self.api.rest_url + 'transform/functions/main'
+        res = self.api.send_request(requests.post, url, json=data)
         return res
 
     def deploy_default_code(self):
@@ -98,7 +98,7 @@ class _CodeEngine(object):
                             'result' - the resulting event
                             'runtime' - millis it took the function to run
         """
-        url = self.api._rest_url + 'transform/functions/run'
+        url = self.api.rest_url + 'transform/functions/run'
         if temp_transform is None:
             temp_transform = self.get_code()
         if not isinstance(sample, dict):
@@ -109,7 +109,7 @@ class _CodeEngine(object):
             'code': temp_transform,
             'sample': sample
         }
-        res = self.api._send_request(requests.post, url, json=data)
+        res = self.api.send_request(requests.post, url, json=data)
         return json.loads(res.content)
     
     def test_transform_all_samples(self, event_type=None, status_code=None):
@@ -137,5 +137,13 @@ class _CodeEngine(object):
                                                           curr_transform)
                         results.append(s)
         return results
+
+    def get_code_engine_node_id(self):
+        transform_node = self.api.inputs._get_node_by('type', 'TRANSFORMER')
+        if transform_node:
+            return transform_node['id']
+
+        raise Exception('Could not locate transform id for %s' %
+                        self.api.hostname)
 
 SUBMODULE_CLASS = _CodeEngine

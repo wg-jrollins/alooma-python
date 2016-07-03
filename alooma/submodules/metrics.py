@@ -1,4 +1,5 @@
 import requests
+
 from consts import METRICS_LIST
 
 
@@ -20,11 +21,11 @@ class _Metrics(object):
                                 name=metric_names, metrics=METRICS_LIST))
 
         metrics_string = ",".join(metric_names)
-        url = self.api._rest_url + 'metrics?metrics=%s&from=-%dmin&resolution=%dmin' \
+        url = self.api.rest_url + 'metrics?metrics=%s&from=-%dmin&resolution=%dmin' \
                                      '' % (metrics_string, minutes, minutes)
-        res = self.api._send_request(requests.get, url)
+        res = self.api.send_request(requests.get, url)
 
-        response = self.api._parse_response_to_json(res)
+        response = self.api.parse_response_to_json(res)
         return response
 
     def get_incoming_queue_metric(self, minutes):

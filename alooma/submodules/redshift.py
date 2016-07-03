@@ -1,5 +1,7 @@
-import requests
 import json
+
+import requests
+
 from consts import REDSHIFT_TYPE
 
 
@@ -54,16 +56,16 @@ class _Redshift(object):
             'type': sink_type.upper(),
             'deleted': False
         }
-        ssh_config = self.api.inputs.__get_ssh_config(
+        ssh_config = self.api.inputs._get_ssh_config(
             ssh_server=ssh_server, ssh_port=ssh_port,
             ssh_username=ssh_username, ssh_password=ssh_password)
         if ssh_config:
             payload['configuration']['ssh'] = json.dumps(ssh_config) \
                 if isinstance(ssh_config, dict) else ssh_config
 
-        url = self.api._rest_url + 'plumbing/nodes/' + output_node['id']
-        res = self.api._send_request(requests.put, url, json=payload)
-        return self.api._parse_response_to_json(res)
+        url = self.api.rest_url + 'plumbing/nodes/' + output_node['id']
+        res = self.api.send_request(requests.put, url, json=payload)
+        return self.api.parse_response_to_json(res)
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False,
@@ -102,7 +104,7 @@ class _Redshift(object):
                                       ssh_password=ssh_password)
 
     def get_redshift_config(self):
-        redshift_node = self.api.structure.get_redshift_node()
+        redshift_node = self.get_redshift_node()
         if redshift_node:
             return redshift_node['configuration']
         return None
@@ -113,9 +115,9 @@ class _Redshift(object):
         The list contains the table names and the entire column structure
         including types and constraints
         """
-        url = self.api._rest_url + 'tables'
-        res = self.api._send_request(requests.get, url)
-        return self.api._parse_response_to_json(res)
+        url = self.api.rest_url + 'tables'
+        res = self.api.send_request(requests.get, url)
+        return self.api.parse_response_to_json(res)
 
     def create_table(self, table_name, columns):
         """
@@ -136,11 +138,11 @@ class _Redshift(object):
             }
         ]
         """
-        url = self.api._rest_url + 'tables/' + table_name
+        url = self.api.rest_url + 'tables/' + table_name
 
-        res = self.api._send_request(requests.post, url, json=columns)
+        res = self.api.send_request(requests.post, url, json=columns)
 
-        return self.api._parse_response_to_json(res)
+        return self.api.parse_response_to_json(res)
 
     def alter_table(self, table_name, columns):
         """
@@ -161,10 +163,13 @@ class _Redshift(object):
             }
         ]
         """
-        url = self.api._rest_url + 'tables/' + table_name
+        url = self.api.rest_url + 'tables/' + table_name
 
-        res = self.api._send_request(requests.put, url, json=columns)
+        res = self.api.send_request(requests.put, url, json=columns)
 
         return res
+
+    def get_redshift_node(self):
+        return self.api.inputs._get_node_by('name', 'Redshift')
 
 SUBMODULE_CLASS = _Redshift

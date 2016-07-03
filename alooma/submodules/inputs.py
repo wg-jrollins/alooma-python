@@ -1,11 +1,10 @@
+import datetime
 import json
 import re
 import time
+import urllib
 
 import requests
-
-import urllib
-import datetime
 
 import alooma_exceptions
 from consts import POST_DATA_CONFIGURATION, POST_DATA_NAME, POST_DATA_TYPE, \
@@ -403,7 +402,7 @@ class _Structure(object):
             self, input_name, server, port, user, password, tables,
             replication_frequency, start_time, schema=None, database=None,
             ssh_server=None,  ssh_port=None, ssh_username=None,
-            ssh_password=None,one_click=False):
+            ssh_password=None, one_click=False):
         """
         Create a new MySQL full dump\load input
         :param input_name: Name your new input
@@ -723,11 +722,12 @@ class _Structure(object):
     def create_rds_heroku_psql_incremental_dump_load_input(
             self, input_name, server, port, user, password, database, schema,
             tables, batch_size=10000, ssh_server=None,  ssh_port=None,
-            ssh_username=None, ssh_password=None,one_click=False):
+            ssh_username=None, ssh_password=None, one_click=False):
         """
         Create a new RDS/Heroku PostgreSQL incremental dump\load input
         :param input_name: Name your new input
-        :param server: Hostname or IP address of your RDS/Heroku PostgreSQL server
+        :param server: Hostname or IP address of your RDS/Heroku PostgreSQL
+                       server
         :param port: RDS/Heroku PostgreSQL server's port
         :param user: User name to use when connecting to your
                      RDS/Heroku PostgreSQL server
@@ -740,7 +740,8 @@ class _Structure(object):
                        columns
         :param batch_size: :type int
                            Bigger batch size means faster backfill, but may
-                           increase the load on your RDS/Heroku PostgreSQL server.
+                           increase the load on your RDS/Heroku PostgreSQL
+                           server.
         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
                            from the public internet
         :param ssh_port: (Optional) The SSH port of the SSH server as seen from
@@ -889,7 +890,8 @@ class _Structure(object):
         :param bucket: Bucket Name :type str
         :param prefix: File prefix (optional) :type str
         :param all_files: Select which files to import :type bool
-        :param file_format_config: The file format configs. Must contain only those keys and
+        :param file_format_config: The file format configs. Must contain only
+                                   those keys and
         :param one_click: Define whether Alooma will map this input's events to
                           your target database, or you'll define your own
                           mapping. :type bool
@@ -935,9 +937,11 @@ class _Structure(object):
         :param user: Username used to connect to your Salesforce
         :param password: Password used to connect to your Salesforce
         :param token: Your Salesforce account security token
-        :param objects: :type list or str: List of Salesforce objects to Replicate
+        :param objects: :type list or str: List of Salesforce objects to
+                                           Replicate
         :param is_sandbox: :type bool: This is a sandbox account
-        :param start_time: :type datetime: Since when to start running replication
+        :param start_time: :type datetime: Since when to start running
+                                           replication
         :param daily_api_call_usage_limit: :type int: Set a daily API call
                                                       usage limit
         :param daily_bulk_api_query_limit: :type int: Set a daily Bulk API
@@ -1066,8 +1070,8 @@ class _Structure(object):
                                                          separated list of table
                                                          names
         :param replication_frequency: Every how much time to replicate tables
-        :param start_time: Since when to start running replication :type datetime
-                           object that contains time attributes
+        :param start_time: Since when to start running replication :type
+                           datetime object that contains time attributes
         :param database: Database name to replicate
         :param schema: Schema name
         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
@@ -1118,12 +1122,24 @@ class _Structure(object):
                      one_click=False, ssh_server=None,  ssh_port=None,
                      ssh_username=None, ssh_password=None):
         """
+        Create a new input
+        :param configuration: :type dict: Input's configuration object
         :param input_name: Name your new input
+        :param input_type: Input's type
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                              on the SSH server
         :param one_click: :type bool. Define whether Alooma will map this
                                       input's events to your target database, or
-                                      you'll define your own mapping. 
+                                      you'll define your own mapping.
+        :return:
         """
-        ssh_config = self.__get_ssh_config(
+        ssh_config = self._get_ssh_config(
             ssh_server=ssh_server, ssh_port=ssh_port, ssh_username=ssh_username,
             ssh_password=ssh_password)
         if ssh_config:
@@ -1144,14 +1160,12 @@ class _Structure(object):
         previous_nodes = [x for x in structure['nodes']
                           if x[POST_DATA_NAME] == post_data[POST_DATA_NAME]]
 
-        url = self.api._rest_url + 'plumbing/inputs?%s' % urllib.urlencode(
-            {'autoMap': one_click})
+        url = self.api.rest_url + \
+            'plumbing/inputs?%s' % urllib.urlencode({'autoMap': one_click})
 
-        self.api._send_request(requests.post, url, json=post_data)
+        self.api.send_request(requests.post, url, json=post_data)
 
-        retries_left = 10
-        while retries_left > 0:
-            retries_left -= 1
+        for i in range(10):
             structure = self.get_structure()
             input_type_nodes = [
                 x for x in structure['nodes']
@@ -1171,18 +1185,145 @@ class _Structure(object):
                 'Failed to create {type} input'
                 .format(type=post_data[POST_DATA_TYPE]))
 
-    def get_transform_node_id(self):
-        transform_node = self._get_node_by('type', 'TRANSFORMER')
-        if transform_node:
-            return transform_node['id']
-
-        raise Exception('Could not locate transform id for %s' %
-                        self.api.hostname)
-
-    def remove_input(self, input_id):
+    def delete_input(self, input_name, input_id=None, delete_event_types=False):
+        """
+        Delete an input by it's name
+        :param input_name: The input name you want delete
+        :param input_id: The input's ID (Optional)
+        :param delete_event_types: :type bool: In case you want to delete
+                                               input's event types then set to
+                                               True. (Note; If you have multiple
+                                               inputs that mapped to the same
+                                               event type might me deleted also,
+                                               in case this input would be the
+                                               most common one)
+        """
+        if input_id is None:
+            input_id = next(input_config['id'] for input_config in
+                            self.get_input_config(input_name=input_name)
+                            if input_config['name'] == input_name)
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
-                rest_url=self.api._rest_url, input_id=input_id)
-        self.api._send_request(requests.post, url)
+                rest_url=self.api.rest_url, input_id=input_id)
+        self.api.send_request(requests.post, url)
+
+        if delete_event_types:
+            event_types_main_stats_input_label = self.api.mapper.\
+                get_event_type_main_stats_input_label()
+            for k, v in event_types_main_stats_input_label.iteritems():
+                if v == input_name:
+                    self.api.mapper.delete_event_type(k)
+
+    def get_structure(self):
+        """
+        Returns a representation of all the inputs, outputs,
+        and on-stream processors currently configured in the system
+        :return: A dict representing the structure of the system
+        """
+        url_get = self.api.rest_url + 'plumbing/?resolution=1min'
+        response = self.api.send_request(requests.get, url_get)
+        return self.api.parse_response_to_json(response)
+
+    def get_input_config(self, input_name=None, input_type=None, input_id=None):
+        """
+        Get a list of all the input nodes with their configurations.
+        :param input_name: Filter by name (accepts Regex)
+        :param input_type: Filter by type (e.g. "mysql")
+        :param input_id: Filter by node ID
+        :return: A list of all the inputs in the system, along
+        with metadata and configurations
+        """
+
+        nodes = self._get_inputs_nodes()
+        if input_name:
+            input_id = self._get_input_id_by_input_name(input_name=input_name)
+        if input_id:
+            nodes = [node for node in nodes if node['id'] == input_id]
+        elif input_type:
+            nodes = [node for node in nodes
+                     if node['type'].lower() == input_type.lower()]
+        else:
+            raise TypeError('get_input_config() takes exactly 1 argument '
+                            '(0 given)')
+        return nodes
+
+    def delete_all_inputs(self, delete_event_types=False):
+        """
+        Will delete all your inputs
+        :param delete_event_types: If sat to True then after removing all of
+        your inputs then it will remove all you event types
+        """
+        plumbing = self.get_structure()
+        for node in plumbing["nodes"]:
+            if node["category"] == "INPUT" \
+                    and node["type"] not in ["RESTREAM", "AGENT"]:
+                self.delete_input(node["id"])
+
+        if delete_event_types:
+            self.api.mapper.delete_all_event_types()
+
+    def get_input_sleep_time(self, input_name=None, input_id=None):
+        """
+        Get the sleep time for an input
+        :param input_name: Filter by name (accepts Regex)
+        :param input_id: The input's ID (Optional)
+        :return: sleep time of the input with ID input_id
+        """
+        if input_name:
+            input_id = self._get_input_id_by_input_name(input_name=input_name)
+        if not input_id:
+            raise TypeError('get_input_sleep_time() takes exactly 1 argument '
+                            '(0 given)')
+        url = self.api.rest_url + 'inputSleepTime/%s' % input_id
+        res = self.api.send_request(requests.get, url)
+        return float(json.loads(res.content).get('inputSleepTime'))
+
+    def set_input_sleep_time(self, input_name=None, input_id=None,
+                             sleep_time=5):
+        """
+        Update input's sleep time
+        :param input_name: Filter by name (accepts Regex)
+        :param input_id: The input's ID (Optional)
+        :param sleep_time: new sleep time to set for input with ID input_id
+        :return:           result of the REST request
+        """
+        if input_name:
+            input_id = self._get_input_id_by_input_name(input_name=input_name)
+        if not input_id:
+            raise TypeError('set_input_sleep_time() takes exactly 1 argument '
+                            '(0 given)')
+        url = self.api.rest_url + 'inputSleepTime/%s' % input_id
+        res = self.api.send_request(requests.put, url, data=str(sleep_time))
+        return res
+
+    def get_input_structure(self, input_name=None, input_id=None):
+        if input_name:
+            input_id = self._get_input_id_by_input_name(input_name=input_name)
+        if not input_id:
+            raise TypeError('get_input_structure() takes exactly 1 argument '
+                            '(0 given)')
+        url = "%splumbing/nodes/%s" % (self.api.rest_url, input_id)
+        res = self.api.send_request(requests.get, url)
+        return json.loads(res.content)
+
+    def get_input_types(self):
+        url = self.api.rest_url + "plumbing/types"
+        res = self.api.send_request(requests.get, url).json()
+        return res["INPUT"]
+
+    def get_token(self, input_name, input_type):
+        """
+        Get token string for an input by it's name and type
+        :param input_name: Name your new input
+        :param input_type: The type ov your new input
+        :return: :type str: Token
+        """
+        url = self.api.rest_url + 'token?inputLabel=%s&inputType=%s' % (
+            input_name, input_type.upper())
+        token = self.api.send_request(requests.get, url)
+        return token.json()["token"]
+
+    def _get_input_node_id(self, name):
+        return self._get_node_by("name", name)["id"]
 
     def _get_node_by(self, field, value):
         """
@@ -1193,102 +1334,48 @@ class _Structure(object):
         :return: first node that found, if no node found for this case return
         None
         """
-        plumbing = self.get_structure()
-        for node in plumbing["nodes"]:
-            if node[field] == value:
-                return node
-        return None
+        return next(node for node in self.get_structure()
+                    if node[field].lower() == value.lower())
 
-    def get_structure(self):
+    def _get_input_id_by_input_name(self, input_name):
         """
-        Returns a representation of all the inputs, outputs,
-        and on-stream processors currently configured in the system
-        :return: A dict representing the structure of the system
+        Returns input's ID by it's name
+        :param input_name:
+        :return:
         """
-        url_get = self.api._rest_url + 'plumbing/?resolution=1min'
-        response = self.api._send_request(requests.get, url_get)
-        return self.api._parse_response_to_json(response)
+        nodes = self._get_inputs_nodes()
+        regex = re.compile(input_name)
+        input_id = next(node['id'] for node in nodes
+                        if regex.match(node['name']))
+        return input_id
 
-    def get_plumbing(self):
+    def _get_inputs_nodes(self):
         """
-        DEPRECATED - use get_structure() instead.
-        Returns a representation of all the inputs, outputs,
-        and on-stream processors currently configured in the system
-        :return: A dict representing the structure of the system
-        """
-        return self.get_structure()
-
-    def get_inputs(self, name=None, input_type=None, input_id=None):
-        """
-        Get a list of all the input nodes in the system
-        :param name: Filter by name (accepts Regex)
-        :param input_type: Filter by type (e.g. "mysql")
-        :param input_id: Filter by node ID
-        :return: A list of all the inputs in the system, along
-        with metadata and configurations
+        Get all inputs nodes that are alive
+        :return: :type list of dicts: list of inputs structure
         """
         nodes = [node for node in self.get_structure()['nodes']
-                 if node['category'] == 'INPUT']
-        if input_type:
-            nodes = [node for node in nodes if node['type'] == input_type]
-        if name:
-            regex = re.compile(name)
-            nodes = [node for node in nodes if regex.match(node['name'])]
-        if input_id:
-            nodes = [node for node in nodes if node['id'] == input_id]
+                 if node['category'] == 'INPUT' and node['type'] not in
+                 ['RESTREAM', 'AGENT'] and not node['deleted']]
         return nodes
 
-    def get_redshift_node(self):
-        return self._get_node_by('name', 'Redshift')
-
-    def remove_all_inputs(self):
-        plumbing = self.get_structure()
-        for node in plumbing["nodes"]:
-            if node["category"] == "INPUT" \
-                    and node["type"] not in ["RESTREAM", "AGENT"]:
-                self.remove_input(node["id"])
-
-    def get_input_sleep_time(self, input_id):
+    @staticmethod
+    def get_public_ssh_key():
         """
-        :param input_id:    ID of the input whose sleep time to return
-        :return:            sleep time of the input with ID input_id
+        Get public SSH key, uses for adding input\output with SSH and this is
+        the required ssh key that need to be added to your access list
+        :return: :type str: SSH Public key string
         """
-        url = self.api._rest_url + 'inputSleepTime/%s' % input_id
-        res = self.api._send_request(requests.get, url)
-        return float(json.loads(res.content).get('inputSleepTime'))
-
-    def set_input_sleep_time(self, input_id, sleep_time):
-        """
-        :param input_id:    ID of the input whose sleep time to change
-        :param sleep_time:  new sleep time to set for input with ID input_id
-        :return:            result of the REST request
-        """
-        url = self.api._rest_url + 'inputSleepTime/%s' % input_id
-        res = self.api._send_request(requests.put, url, data=str(sleep_time))
-        return res
-
-    def get_input_structure(self, name):
-        url = "%splumbing/nodes/%s" % (
-            self.api._rest_url, self._get_input_node_ids(name))
-        res = self.api._send_request(requests.get, url)
-        return json.loads(res.content)
-
-    def get_input_types(self):
-        url = self.api._rest_url + "plumbing/types"
-        res = self.api._send_request(requests.get, url).json()
-        return res["INPUT"]
-
-    def _get_input_node_ids(self, name):
-        return self._get_node_by("name", name)["id"]
-
-    def get_token(self, input_name, input_type):
-        url = self.api._rest_url + 'token?inputLabel=%s&inputType=%s' % (
-            input_name, input_type.upper())
-        token = self.api._send_request(requests.get, url)
-        return token.json()["token"]
+        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+t5OKwGcUGYRdDAC8ovblV" \
+               "/10AoBfuI/nmkxgRx0J+M3tIdTdxW0Layqb6Xtz8PMsxy1uhM+Rw6cXhU/FQW" \
+               "bOr7MB5hJUqXY5OI4NVtI+cc2diCyYUjgCIb7dBSKoyZecJqp3bQuekuZT/Ow" \
+               "Z40vLc42g6cUV01b5loV9pU9DvRl6zZXHyrE7fssJ90q2lhvuBjltU7g543bU" \
+               "klkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3mVEX/l4GDIsTkLIR" \
+               "zHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM/PdJJEHh65986tgprb" \
+               "I0Lz+geqYmASgF deploy@alooma.io"
 
     @staticmethod
-    def __get_ssh_config(ssh_server, ssh_port, ssh_username, ssh_password=None):
+    def _get_ssh_config(ssh_server, ssh_port, ssh_username, ssh_password=None):
         """
         Get SSH configuration dictionary, for more information:
         https://www.alooma.com/docs/integration/mysql-replication#/#connect-via-ssh
@@ -1309,16 +1396,6 @@ class _Structure(object):
                 ssh_config['password'] = ssh_password
 
         return ssh_config
-
-    @staticmethod
-    def get_public_ssh_key():
-        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+t5OKwGcUGYRdDAC8ovblV" \
-               "/10AoBfuI/nmkxgRx0J+M3tIdTdxW0Layqb6Xtz8PMsxy1uhM+Rw6cXhU/FQW" \
-               "bOr7MB5hJUqXY5OI4NVtI+cc2diCyYUjgCIb7dBSKoyZecJqp3bQuekuZT/Ow" \
-               "Z40vLc42g6cUV01b5loV9pU9DvRl6zZXHyrE7fssJ90q2lhvuBjltU7g543bU" \
-               "klkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3mVEX/l4GDIsTkLIR" \
-               "zHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM/PdJJEHh65986tgprb" \
-               "I0Lz+geqYmASgF deploy@alooma.io"
 
 
 SUBMODULE_CLASS = _Structure

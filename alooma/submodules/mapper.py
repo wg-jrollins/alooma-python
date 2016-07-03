@@ -16,8 +16,8 @@ class _Mapper(object):
         The mapping mode should be one of the values in
         alooma._mapper.MAPPING_MODES
         """
-        url = self.api._rest_url + 'mapping-mode'
-        res = self.api._send_request(requests.get, url)
+        url = self.api.rest_url + 'mapping-mode'
+        res = self.api.send_request(requests.get, url)
         return res.content.replace('"', '')
 
     def set_mapping_mode(self, flexible):
@@ -25,8 +25,8 @@ class _Mapper(object):
         Sets the default mapping mode in the system. The mapping
         mode should be one of the values in alooma._mapper.MAPPING_MODES
         """
-        url = self.api._rest_url + 'mapping-mode'
-        res = self.api._send_request(
+        url = self.api.rest_url + 'mapping-mode'
+        res = self.api.send_request(
             requests.post, url, json='FLEXIBLE' if flexible else 'STRICT')
         return res
 
@@ -51,9 +51,9 @@ class _Mapper(object):
         if prefix:
             table_name = '%s_%s' % (prefix.lower(), table_name)
         quoted_type = moves.urllib.parse.quote(event_type)
-        url = '%s/event-types/%s/auto-map' % (self.api._rest_url, quoted_type)
+        url = '%s/event-types/%s/auto-map' % (self.api.rest_url, quoted_type)
         auto_map = json.loads(
-            self.api._send_request(requests.post, url).content)
+            self.api.send_request(requests.post, url).content)
         auto_map['mapping']['tableName'] = \
             table_name if table_name else event_type
         auto_map['state'] = 'MAPPED'
@@ -87,16 +87,16 @@ class _Mapper(object):
 
     def delete_event_type(self, event_type):
         event_type = moves.urllib.parse.quote(event_type, safe='')
-        url = self.api._rest_url + 'event-types/{event_type}' \
+        url = self.api.rest_url + 'event-types/{event_type}' \
             .format(event_type=event_type)
 
-        self.api._send_request(requests.delete, url)
+        self.api.send_request(requests.delete, url)
 
     def get_all_event_types(self, with_mapping=True):
-        url = self.api._rest_url + 'event-types'
-        res = self.api._send_request(requests.get, url)
+        url = self.api.rest_url + 'event-types'
+        res = self.api.send_request(requests.get, url)
         event_types_names = [event_type["name"] for event_type in
-                             self.api._parse_response_to_json(res)]
+                             self.api.parse_response_to_json(res)]
         if not with_mapping:
             return event_types_names
 
@@ -114,11 +114,11 @@ class _Mapper(object):
         :return: All the event types existing in the system, optionally
         filtered by source input name or type
         """
-        url = self.api._rest_url + 'event-types'
-        res = self.api._send_request(requests.get, url)
+        url = self.api.rest_url + 'event-types'
+        res = self.api.send_request(requests.get, url)
         input_name = re.compile(input_name_filter.lower()) \
             if input_name_filter else None
-        event_types = self.api._parse_response_to_json(res)
+        event_types = self.api.parse_response_to_json(res)
         result = []
         if not (input_name_filter or input_type_filter):
             return event_types
@@ -154,10 +154,10 @@ class _Mapper(object):
         :return: A dict representation of the event-type's data
         """
         event_type = moves.urllib.parse.quote(event_type, safe='')
-        url = self.api._rest_url + 'event-types/' + event_type
+        url = self.api.rest_url + 'event-types/' + event_type
 
-        res = self.api._send_request(requests.get, url)
-        return self.api._parse_response_to_json(res)
+        res = self.api.send_request(requests.get, url)
+        return self.api.parse_response_to_json(res)
 
     def discard_event_type(self, event_type):
         """
@@ -309,9 +309,9 @@ class _Mapper(object):
                     table_name, self.table_structure_from_mapping(mapping))
 
         event_type = moves.urllib.parse.quote(event_type, safe='')
-        url = self.api._rest_url + 'event-types/{event_type}/mapping'.format(
+        url = self.api.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
-        res = self.api._send_request(requests.post, url, json=mapping)
+        res = self.api.send_request(requests.post, url, json=mapping)
         return res
 
     @staticmethod
@@ -376,6 +376,55 @@ class _Mapper(object):
             return cols
 
         return extract_column({'fields': mapping['fields']})
+
+    def get_event_type_input_label_stats(self, event_type=None):
+        """
+        Get event type or all event types input labels stats
+        :param event_type: Event type name to get it's specific input labels
+                           stats (Optional)
+        :return: :type dict: {input_label: [(input_label, count)]}
+        """
+        all_event_types_mapping = self.api.mapper.get_all_event_types()
+        event_types_stats = {}
+        for event_type_mapping in all_event_types_mapping:
+            # If event_type name provided, checks if the current event_type and
+            # the provided one are equals
+            if event_type is not None and \
+                    event_type_mapping['name'] != event_type:
+                continue
+            for f in event_type_mapping['fields']:
+                if f['fieldName'] != '_metadata':
+                    continue
+                for metadata_field in f['fields']:
+                    if metadata_field['fieldName'] != 'input_type':
+                        continue
+                    if metadata_field['stats'] is None:
+                        event_types_stats[event_type_mapping['name']] = \
+                            [('Unknown', 0)]
+                        continue
+                    event_types_stats[event_type_mapping['name']] = [
+                        (i, s['count']) for i, s in
+                        metadata_field['stats']['stringStats']['samples'].items()]
+
+            # Will return list of the requested event_type's stats
+            if event_type is not None and event_type_mapping['name'] != event_type:
+                return event_types_stats
+        return event_types_stats
+
+    def get_event_type_main_stats_input_label(self, event_type=None):
+        """
+        Get main input label that mapped to event type or for all event types
+        :param event_type: Event type name to get it's main input label
+        :return: :type dict: {event_type: main_input_label_name}
+        """
+        event_type_stats = self.get_event_type_input_label_stats(event_type)
+        event_type_main_input_label = {}
+        for event_type_stats_k, event_type_stats_v in event_type_stats.iteritems():
+            max_count = 0
+            for input_label, count in event_type_stats_v:
+                if count > max_count or max_count == 0:
+                    event_type_main_input_label[event_type_stats_k] = input_label
+        return event_type_main_input_label
 
 
 def remove_stats(mapping):

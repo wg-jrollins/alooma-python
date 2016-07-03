@@ -1,6 +1,6 @@
 import requests
 
-import consts
+from alooma import consts
 
 
 class _Configurations(object):
@@ -13,9 +13,9 @@ class _Configurations(object):
         This is also used periodically by Alooma for backup purposes,
         :return: a dict representation of the system configuration
         """
-        url_get = self.api._rest_url + 'config/export'
-        response = self.api._send_request(requests.get, url=url_get)
-        config_export = self.api._parse_response_to_json(response)
+        url_get = self.api.rest_url + 'config/export'
+        response = self.api.send_request(requests.get, url=url_get)
+        config_export = self.api.parse_response_to_json(response)
         return config_export
 
     def clean_system(self):
@@ -33,19 +33,19 @@ class _Configurations(object):
         self.delete_s3_retention()
 
     def get_users(self):
-        url = self.api._rest_url + 'users/'
+        url = self.api.rest_url + 'users/'
 
-        res = self.api._send_request(requests.get, url)
-        return self.api._parse_response_to_json(res)
+        res = self.api.send_request(requests.get, url)
+        return self.api.parse_response_to_json(res)
 
     def get_settings(self):
-        url = self.api._rest_url + 'settings/'
+        url = self.api.rest_url + 'settings/'
 
-        res = self.api._send_request(requests.get, url)
-        return self.api._parse_response_to_json(res)
+        res = self.api.send_request(requests.get, url)
+        return self.api.parse_response_to_json(res)
 
     def delete_s3_retention(self):
-        url = self.api._rest_url + "settings/s3-retention"
-        self.api._send_request(requests.delete, url)
+        url = self.api.rest_url + "settings/s3-retention"
+        self.api.send_request(requests.delete, url)
 
 SUBMODULE_CLASS = _Configurations

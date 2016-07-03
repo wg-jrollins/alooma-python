@@ -6,10 +6,10 @@ class _Notifications(object):
         self.api = api
 
     def get_notifications(self, epoch_time):
-        url = self.api._rest_url + "notifications?from={epoch_time}". \
+        url = self.api.rest_url + "notifications?from={epoch_time}". \
             format(epoch_time=epoch_time)
-        res = self.api._send_request(requests.get, url)
-        return self.api._parse_response_to_json(res)
+        res = self.api.send_request(requests.get, url)
+        return self.api.parse_response_to_json(res)
 
     @staticmethod
     def parse_notifications_errors(notifications):
@@ -23,7 +23,7 @@ class _Notifications(object):
         return messages_to_str
 
     def set_settings_email_notifications(self, email_settings_json):
-        url = self.api._rest_url + "settings/email-notifications"
-        self.api._send_request(requests.post, url, json=email_settings_json)
+        url = self.api.rest_url + "settings/email-notifications"
+        self.api.send_request(requests.post, url, json=email_settings_json)
 
 SUBMODULE_CLASS = _Notifications

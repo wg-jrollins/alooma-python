@@ -1,4 +1,5 @@
 import requests
+
 from consts import RESTREAM_QUEUE_TYPE_NAME
 
 
@@ -53,7 +54,7 @@ class _Restream(object):
                 "deleted": False,
                 "state": None
             }
-            self.api._send_request(requests.put, url,
+            self.api.send_request(requests.put, url,
                                 json=restream_click_button_json)
         else:
             raise Exception("Could not find '{restream_type}' type".format(

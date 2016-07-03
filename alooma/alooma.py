@@ -5,9 +5,9 @@ import pickle
 import requests
 import yaml
 
+import consts
 import alooma_exceptions
-import submodules
-import submodules.consts
+
 
 try:
     with open('logging.conf') as f:
@@ -42,9 +42,9 @@ class Alooma(object):
                             when it is closed
         """
         self._hostname = hostname
-        self._rest_url = 'https://%s:%d%s/rest/' % (hostname,
-                                                    port,
-                                                    url_prefix)
+        self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
+                                                   port,
+                                                   url_prefix)
         self._username = username
         self._password = password
         self._requests_params = None
@@ -74,7 +74,7 @@ class Alooma(object):
                 self._logger.exception('The submodule "%s" could not be loaded.'
                                        ' Exception: %s', module_name, ex)
 
-    def _send_request(self, func, url, is_recheck=False, **kwargs):
+    def send_request(self, func, url, is_recheck=False, **kwargs):
         """
         Wraps REST requests to Alooma. This function ensures we are logged in
          and that all params exist, and catches any exceptions.
@@ -101,7 +101,7 @@ class Alooma(object):
 
         if response.status_code == 401 and not is_recheck:
             self.__login()
-            return self._send_request(func, url, True, **kwargs)
+            return self.send_request(func, url, True, **kwargs)
         # Raise exception with it's content and reason (Only if there reason
         # contains something)
         raise Exception('The rest call to %s failed: %s' % (
@@ -109,7 +109,7 @@ class Alooma(object):
             if response.reason else ""))
 
     def __login(self):
-        url = self._rest_url + 'login'
+        url = self.rest_url + 'login'
         login_data = {"email": self._username, "password": self._password}
         resp = self._session.post(url, json=login_data)
 
@@ -166,5 +166,5 @@ class Alooma(object):
 
     @staticmethod
     def _parse_response_to_json(response):
-        return json.loads(response.content.decode(submodules.consts.
+        return json.loads(response.content.decode(consts.
                                                   DEFAULT_ENCODING))
