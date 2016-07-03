@@ -2,10 +2,10 @@ import json
 
 import requests
 
-from consts import REDSHIFT_TYPE
+from alooma.consts import REDSHIFT_TYPE
 
 
-class _Redshift(object):
+class Redshift(object):
     def __init__(self, api):
         self.api = api
 
@@ -171,5 +171,3 @@ class _Redshift(object):
 
     def get_redshift_node(self):
         return self.api.inputs._get_node_by('name', 'Redshift')
-
-SUBMODULE_CLASS = _Redshift

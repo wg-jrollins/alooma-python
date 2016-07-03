@@ -1,7 +1,7 @@
 import requests
 
 
-class _Notifications(object):
+class Notifications(object):
     def __init__(self, api):
         self.api = api
 
@@ -25,5 +25,3 @@ class _Notifications(object):
     def set_settings_email_notifications(self, email_settings_json):
         url = self.api.rest_url + "settings/email-notifications"
         self.api.send_request(requests.post, url, json=email_settings_json)
-
-SUBMODULE_CLASS = _Notifications

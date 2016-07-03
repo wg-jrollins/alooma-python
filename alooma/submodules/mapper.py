@@ -6,7 +6,7 @@ import requests
 from six import moves
 
 
-class _Mapper(object):
+class Mapper(object):
     def __init__(self, api):
         self.api = api
 
@@ -440,6 +440,3 @@ def remove_stats(mapping):
         for index, field in enumerate(mapping['fields']):
             mapping['fields'][index] = remove_stats(field)
     return mapping
-
-
-SUBMODULE_CLASS = _Mapper

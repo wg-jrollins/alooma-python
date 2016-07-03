@@ -6,12 +6,12 @@ import urllib
 
 import requests
 
-import alooma_exceptions
-from consts import POST_DATA_CONFIGURATION, POST_DATA_NAME, POST_DATA_TYPE, \
-    DATE_FORMAT, DATETIME_FORMAT
+from alooma import alooma_exceptions
+from alooma.consts import POST_DATA_CONFIGURATION, POST_DATA_NAME, \
+    POST_DATA_TYPE, DATE_FORMAT, DATETIME_FORMAT
 
 
-class _Structure(object):
+class Structure(object):
     def __init__(self, api):
         self.api = api
 
@@ -1396,6 +1396,3 @@ class _Structure(object):
                 ssh_config['password'] = ssh_password
 
         return ssh_config
-
-
-SUBMODULE_CLASS = _Structure

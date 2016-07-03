@@ -1,9 +1,9 @@
 import requests
 
-from consts import RESTREAM_QUEUE_TYPE_NAME
+from alooma.consts import RESTREAM_QUEUE_TYPE_NAME
 
 
-class _Restream(object):
+class Restream(object):
     def __init__(self, api):
         self.api = api
 
@@ -68,5 +68,3 @@ class _Restream(object):
         restream_node = self.api._get_node_by(
                 "type", RESTREAM_QUEUE_TYPE_NAME)
         return restream_node["stats"]["availbleForRestream"]
-
-SUBMODULE_CLASS = _Restream

@@ -7,6 +7,14 @@ import yaml
 
 import consts
 import alooma_exceptions
+import submodules.code_engine as code_engine
+import submodules.configurations as configurations
+import submodules.inputs as inputs
+import submodules.mapper as mapper
+import submodules.metrics as metrics
+import submodules.notifications as notifications
+import submodules.redshift as redshift
+import submodules.restream as restream
 
 
 try:
@@ -62,17 +70,16 @@ class Alooma(object):
         """
         Loads all submodules registered in the submodules package.
         Submodules are automatically registered by being put in the
-        submodules subfolder. They must contain a 'SUBMODULE_CLASS'
-        member pointing to the actual submodule class
+        submodules subfolder.
         """
-        for module_name in submodules.SUBMODULES:
-            try:
-                submodule = getattr(submodules, module_name)
-                submodule_class = getattr(submodule, 'SUBMODULE_CLASS')
-                setattr(self, module_name, submodule_class(self))
-            except Exception as ex:
-                self._logger.exception('The submodule "%s" could not be loaded.'
-                                       ' Exception: %s', module_name, ex)
+        self.code_engine = code_engine.CodeEngine(self)
+        self.configurations = configurations.Configurations(self)
+        self.inputs = inputs.Structure(self)
+        self.mapper = mapper.Mapper(self)
+        self.metrics = metrics.Metrics(self)
+        self.notifications = notifications.Notifications(self)
+        self.redshift = redshift.Redshift(self)
+        self.restream = restream.Restream(self)
 
     def send_request(self, func, url, is_recheck=False, **kwargs):
         """
@@ -165,6 +172,6 @@ class Alooma(object):
         return 200 <= response.status_code < 300
 
     @staticmethod
-    def _parse_response_to_json(response):
+    def parse_response_to_json(response):
         return json.loads(response.content.decode(consts.
                                                   DEFAULT_ENCODING))

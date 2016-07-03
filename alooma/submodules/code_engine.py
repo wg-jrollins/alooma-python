@@ -5,7 +5,7 @@ import requests
 from alooma import consts
 
 
-class _CodeEngine(object):
+class CodeEngine(object):
     def __init__(self, api):
         self.api = api
 
@@ -145,5 +145,3 @@ class _CodeEngine(object):
 
         raise Exception('Could not locate transform id for %s' %
                         self.api.hostname)
-
-SUBMODULE_CLASS = _CodeEngine

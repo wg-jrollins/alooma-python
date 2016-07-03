@@ -1,9 +1,9 @@
 import requests
 
-from consts import METRICS_LIST
+from alooma.consts import METRICS_LIST
 
 
-class _Metrics(object):
+class Metrics(object):
     def __init__(self, api):
         self.api = api
 
@@ -101,5 +101,3 @@ def non_empty_datapoint_values(data):
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
     return []
-
-SUBMODULE_CLASS = _Metrics

@@ -3,7 +3,7 @@ import requests
 from alooma import consts
 
 
-class _Configurations(object):
+class Configurations(object):
     def __init__(self, api):
         self.api = api
 
@@ -47,5 +47,3 @@ class _Configurations(object):
     def delete_s3_retention(self):
         url = self.api.rest_url + "settings/s3-retention"
         self.api.send_request(requests.delete, url)
-
-SUBMODULE_CLASS = _Configurations
