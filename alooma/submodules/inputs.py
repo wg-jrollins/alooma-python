@@ -21,7 +21,7 @@ class _Structure(object):
                 if x['name'] == name and not x['deleted']]
 
     def create_azure_input(self, input_name, account_name, account_key,
-                           container_name, file_prefix, load_files="new",
+                           container_name, file_prefix=None, load_files="new",
                            one_click=False):
         """
         Create a new azure input
