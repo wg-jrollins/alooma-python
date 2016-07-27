@@ -335,8 +335,9 @@ class Alooma(object):
         """
 
         field = self.find_field_name(mapping, field_path)
-        if field and "mapping" in field.keys() \
-                and isinstance(field["mapping"], dict):
+        if field:
+            if field['mapping'] is None:
+                field['mapping'] = {}
             field["mapping"]["isDiscarded"] = True
             field["mapping"]["columnName"] = ""
             field["mapping"]["columnType"] = None
