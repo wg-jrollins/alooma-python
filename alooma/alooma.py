@@ -546,7 +546,7 @@ class Alooma(object):
             sample = json.loads(sample)
         data = {
             'language': 'PYTHON',
-            'functionName': 'test',
+            'functionName': 'main',
             'code': temp_transform,
             'sample': sample
         }
