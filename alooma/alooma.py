@@ -253,8 +253,8 @@ class Alooma(object):
         previous_nodes = [x for x in structure['nodes']
                           if x['name'] == input_post_data['name']]
 
-        auto_map = "" if auto_map == False else "?automap=true"
-        url = self.rest_url + ('plumbing/inputs%s' % auto_map)
+        auto_map_str = "" if auto_map == False else "?automap=true"
+        url = self.rest_url + ('plumbing/inputs%s' % auto_map_str)
 
         self.__send_request(requests.post, url, json=input_post_data)
 
