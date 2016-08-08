@@ -184,7 +184,7 @@ class Alooma(object):
 
     def create_s3_input(self, name, key, secret, bucket, prefix='',
                         load_files='all', file_format="json", delimiter=",",
-                        quote_char="", escape_char="", auto_map = True):
+                        quote_char="", escape_char="", one_click=True):
         """
         Creates an S3 input using the supplied configurations
         :param name: The designated input name
@@ -233,10 +233,11 @@ class Alooma(object):
                 'fileFormat': json.dumps(file_format_config)
             }
         }
-        return self.create_input(input_post_data=post_data, auto_map = auto_map)
+        return self.create_input(input_post_data=post_data, one_click=one_click)
 
     def create_mixpanel_input(self, mixpanel_api_key, mixpanel_api_secret,
-                              from_date, name, transform_id=None, auto_map = True):
+                              from_date, name, transform_id=None,
+                              one_click=True):
         post_data = {
             "name": name,
             "type": "MIXPANEL",
@@ -246,15 +247,15 @@ class Alooma(object):
                 "fromDate": from_date
             }
         }
-        return self.create_input(input_post_data=post_data, auto_map=auto_map)
+        return self.create_input(input_post_data=post_data, one_click=one_click)
 
-    def create_input(self, input_post_data, auto_map = True):
+    def create_input(self, input_post_data, one_click=True):
         structure = self.get_structure()
         previous_nodes = [x for x in structure['nodes']
                           if x['name'] == input_post_data['name']]
 
-        auto_map_str = "" if auto_map == False else "?automap=true"
-        url = self.rest_url + ('plumbing/inputs%s' % auto_map_str)
+        one_click_str = "" if one_click == False else "?automap=true"
+        url = self.rest_url + ('plumbing/inputs%s' % one_click_str)
 
         self.__send_request(requests.post, url, json=input_post_data)
 
