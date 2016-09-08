@@ -64,6 +64,9 @@ class Alooma(object):
             'cookies': self.cookie
         }
 
+        # Make a dummy request just to ensure we can login, if necessary
+        self.get_mapping_mode()
+
     def __send_request(self, func, url, is_recheck=False, **kwargs):
         params = self.requests_params.copy()
         params.update(kwargs)
