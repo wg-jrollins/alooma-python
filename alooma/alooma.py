@@ -290,6 +290,12 @@ class Alooma(object):
                         self.hostname)
 
     def remove_input(self, input_id):
+        """
+        :param input_id: the id for a given input
+
+        for example:
+                This can be found in the url in the input settings
+        """
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
             rest_url=self.rest_url, input_id=input_id)
         self.__send_request(requests.post, url)
@@ -303,6 +309,10 @@ class Alooma(object):
         self.set_transform(transform=transform)
 
     def set_mapping(self, mapping, event_type):
+        """
+        :param mapping: this is the mapping json
+        :param event_type: event name found in the mapper
+        """
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
@@ -310,6 +320,9 @@ class Alooma(object):
         return res
 
     def discard_event_type(self, event_type):
+        """
+        :param event_type: event name found in the mapper
+        """
         event_type_json = {
             "name": event_type,
             "mapping": {
@@ -645,6 +658,10 @@ class Alooma(object):
         }
 
     def get_throughput_by_name(self, name):
+        """
+        :param name: the name of each node
+                ie. Inputs, Code Engine, Restream, Mapper, and Output
+        """
         structure = self.get_structure()
         return [x['stats']['throughput'] for x in structure['nodes']
                 if x['name'] == name and not x['deleted']]
