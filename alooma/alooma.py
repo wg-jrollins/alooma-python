@@ -756,6 +756,33 @@ class Alooma(object):
             nodes = [node for node in nodes if node['id'] == input_id]
         return nodes
 
+    def set_output(self, output_config, sink_type, skip_validation=False):
+        """
+        Set Output
+        :param output_config: output configuration dictionary
+        :param sink_type: REDSHIFT, MEMSQL, BIGQUERY, SNOWFLAKE, MYSQL_OUTPUT
+        :param skip_validation: :type bool: True for skip Output configuration
+                                            validation, False for validate
+                                            Output configurations
+        """
+        output_node = self._get_node_by('category', 'OUTPUT')
+
+        output_config = dict(sinkType=sink_type.upper(),
+                             skipValidation=skip_validation,
+                             **output_config)
+
+        payload = {
+            'configuration': output_config,
+            'category': 'OUTPUT',
+            'id': output_node['id'],
+            'name': sink_type.title(),
+            'type': sink_type.upper(),
+            'deleted': False
+        }
+        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
+
+        self.__send_request(requests.put, url, json=payload)
+
     def set_output_config(self, hostname, port, schema_name, database_name,
                           username, password, skip_validation=False,
                           sink_type=None, output_name=None, ssh_server=None,
