@@ -22,6 +22,8 @@ DEFAULT_ENCODING = 'utf-8'
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 REDSHIFT_TYPE = "REDSHIFT"
+SNOWFLAKE_TYPE = "SNOWFLAKE"
+BIGQUERY_TYPE = "BIGQUERY"
 METRICS_LIST = [
     'EVENT_SIZE_AVG',
     'EVENT_SIZE_TOTAL',
@@ -756,14 +758,20 @@ class Alooma(object):
             nodes = [node for node in nodes if node['id'] == input_id]
         return nodes
 
+    def get_output_node(self):
+        return self._get_node_by('category', 'OUTPUT')
+
     def set_output_config(self, hostname, port, schema_name, database_name,
-                          username, password, skip_validation=False,
-                          sink_type=None, output_name=None, ssh_server=None,
-                          ssh_port=None, ssh_username=None, ssh_password=None):
+                          username, password, account_name, warehouse_name,
+                          skip_validation=False, sink_type=None, output_name=None,
+                          ssh_server=None, ssh_port=None, ssh_username=None,
+                          ssh_password=None):
         """
         Set Output configuration
         :param hostname: Output hostname
         :param port: Output port
+        :param account_name: Output account name
+        :param warehouse_name: Output warehouse name
         :param schema_name: Output schema
         :param database_name: Output database name
         :param username: Output username
@@ -790,6 +798,8 @@ class Alooma(object):
             'configuration': {
                 'hostname': hostname,
                 'port': port,
+                'warehouseName': warehouse_name,
+                'accountName': account_name,
                 'schemaName': schema_name,
                 'databaseName': database_name,
                 'username': username,
@@ -803,6 +813,7 @@ class Alooma(object):
             'type': sink_type.upper(),
             'deleted': False
         }
+        payload = dict((k,v) for k,v in payload.iteritems() if v is not None)
         ssh_config = self.__get_ssh_config(ssh_server=ssh_server,
                                            ssh_port=ssh_port,
                                            ssh_username=ssh_username,
@@ -815,8 +826,17 @@ class Alooma(object):
         res = self.__send_request(requests.put, url, json=payload)
         return parse_response_to_json(res)
 
+
+    def get_output_config(self):
+        output_node = self.get_output_node()
+        if output_node:
+            return output_node['configuration']
+        return None
+
+
     def get_redshift_node(self):
         return self._get_node_by('type', REDSHIFT_TYPE)
+
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False,
@@ -843,10 +863,12 @@ class Alooma(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        return self.set_output_config(hostname=hostname, port=port,
+        return self.set_output_config(hostname=hostname,
+                                      port=port,
                                       schema_name=schema_name,
                                       database_name=database_name,
-                                      username=username, password=password,
+                                      username=username,
+                                      password=password,
                                       skip_validation=skip_validation,
                                       sink_type=REDSHIFT_TYPE,
                                       ssh_server=ssh_server,
@@ -854,10 +876,101 @@ class Alooma(object):
                                       ssh_username=ssh_username,
                                       ssh_password=ssh_password)
 
+
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
         if redshift_node:
             return redshift_node['configuration']
+        return None
+
+
+    def get_snowflake_node(self):
+        return self._get_node_by('type', SNOWFLAKE_TYPE)
+
+
+    def set_snowflake_config(self, account_name, warehouse_name, schema_name, database_name,
+                            username, password, skip_validation=False,
+                            ssh_server=None, ssh_port=None, ssh_username=None,
+                            ssh_password=None):
+        """
+        Set Snowflake configuration
+        :param account_name: Snowflake account name
+        :param warehouse_name: Snowflake warehouse name
+        :param schema_name: Snowflake schema
+        :param database_name: Snowflake database name
+        :param username: Snowflake username
+        :param password: Snowflake password
+        :param skip_validation: :type bool: True for skip Snowflake configuration
+                                            validation, False for validate
+                                            Snowflake configurations
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                             on the SSH server
+        :return: :type dict. Response's content
+        """
+        return self.set_output_config(account_name=account_name,
+                                      warehouse_name=warehouse_name,
+                                      schema_name=schema_name,
+                                      database_name=database_name,
+                                      username=username,
+                                      password=password,
+                                      skip_validation=skip_validation,
+                                      sink_type=SNOWFLAKE_TYPE,
+                                      ssh_server=ssh_server,
+                                      ssh_port=ssh_port,
+                                      ssh_username=ssh_username,
+                                      ssh_password=ssh_password)
+
+
+    def get_snowflake_config(self):
+        snowflake_node = self.get_snowflake_node()
+        if snowflake_node:
+            return snowflake_node['configuration']
+        return None
+
+
+    def get_bigquery_node(self):
+        return self._get_node_by('type', BIGQUERY_TYPE)
+
+
+    def set_bigquery_config(self, schema_name, database_name, skip_validation=False,
+                             ssh_server=None, ssh_port=None, ssh_username=None,
+                             ssh_password=None):
+        """
+        Set BigQuery configuration
+        :param schema_name: BigQuery schema
+        :param database_name: BigQuery database name
+        :param skip_validation: :type bool: True for skip BigQuery configuration
+                                            validation, False for validate
+                                            BigQuery configurations
+        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
+                           from the public internet
+        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
+                         the public internet (default port is 22)
+        :param ssh_username: (Optional) The user name on the SSH server for the
+                             SSH connection (the standard is alooma)
+        :param ssh_password: (Optional) The password that matches the user name
+                             on the SSH server
+        :return: :type dict. Response's content
+        """
+        return self.set_output_config(schema_name=schema_name,
+                                      database_name=database_name,
+                                      skip_validation=skip_validation,
+                                      sink_type=BIGQUERY_TYPE,
+                                      ssh_server=ssh_server,
+                                      ssh_port=ssh_port,
+                                      ssh_username=ssh_username,
+                                      ssh_password=ssh_password)
+
+    def get_bigquery_config(self):
+        bigquery_node = self.get_bigquery_node()
+        if bigquery_node:
+            return bigquery_node['configuration']
         return None
 
     @staticmethod
