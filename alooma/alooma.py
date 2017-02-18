@@ -21,9 +21,16 @@ DEFAULT_SETTINGS_EMAIL_NOTIFICATIONS = {
 DEFAULT_ENCODING = 'utf-8'
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
+
 REDSHIFT_TYPE = "REDSHIFT"
+REDSHIFT_NAME = "Redshift"
+
 SNOWFLAKE_TYPE = "SNOWFLAKE"
+SNOWFLAKE_NAME = "Snowflake"
+
 BIGQUERY_TYPE = "BIGQUERY"
+BIGQUERY_NAME = "BigQuery"
+
 METRICS_LIST = [
     'EVENT_SIZE_AVG',
     'EVENT_SIZE_TOTAL',
@@ -761,12 +768,48 @@ class Alooma(object):
     def get_output_node(self):
         return self._get_node_by('category', 'OUTPUT')
 
+    def __set_output_config(self, output_node, payload):
+        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
+        res = self.__send_request(requests.put, url, json=payload)
+        return parse_response_to_json(res)
+
+    def set_output(self, output_config, output_name=None):
+        """
+        Set Output configuration
+        :param output_config: :type dict. Output connect info.
+        :param skip_validation: :type bool: True for skip Output configuration
+                                            validation, False for validate
+                                            Output configurations
+        :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
+        :param output_name: Output name that would displayed in the UI
+        :return: :type dict. Response's content
+        """
+        output_node = self.get_output_config()
+        if 'skipValidation' not in output_config:
+            output_config = dict(skipValidation=False,
+                                 **output_config)
+
+        sink_type = output_config['sinkType']
+        output_name = output_name if output_name is not None else sink_type.title()
+
+        payload = {
+            'configuration': output_config,
+            'category': 'OUTPUT',
+            'id': output_node['id'],
+            'name': output_name,
+            'type': sink_type.upper(),
+            'deleted': False
+        }
+        return self.__set_output_config(output_node, payload)
+
+
     def set_output_config(self, hostname, port, schema_name, database_name,
-                          username, password, account_name, warehouse_name,
+                          username, password,
                           skip_validation=False, sink_type=None, output_name=None,
                           ssh_server=None, ssh_port=None, ssh_username=None,
                           ssh_password=None):
         """
+        DEPRECATED  - use set_output() instead.
         Set Output configuration
         :param hostname: Output hostname
         :param port: Output port
@@ -798,8 +841,6 @@ class Alooma(object):
             'configuration': {
                 'hostname': hostname,
                 'port': port,
-                'warehouseName': warehouse_name,
-                'accountName': account_name,
                 'schemaName': schema_name,
                 'databaseName': database_name,
                 'username': username,
@@ -814,17 +855,9 @@ class Alooma(object):
             'deleted': False
         }
         payload = dict((k,v) for k,v in payload.iteritems() if v is not None)
-        ssh_config = self.__get_ssh_config(ssh_server=ssh_server,
-                                           ssh_port=ssh_port,
-                                           ssh_username=ssh_username,
-                                           ssh_password=ssh_password)
-        if ssh_config:
-            payload['configuration']['ssh'] = json.dumps(ssh_config) \
-                if isinstance(ssh_config, dict) else ssh_config
-        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
+        self.__add_ssh_config(payload['configuration'], ssh_password, ssh_port, ssh_server, ssh_username)
 
-        res = self.__send_request(requests.put, url, json=payload)
-        return parse_response_to_json(res)
+        return self.__set_output_config(output_node, payload)
 
 
     def get_output_config(self):
@@ -863,19 +896,28 @@ class Alooma(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        return self.set_output_config(hostname=hostname,
-                                      port=port,
-                                      schema_name=schema_name,
-                                      database_name=database_name,
-                                      username=username,
-                                      password=password,
-                                      skip_validation=skip_validation,
-                                      sink_type=REDSHIFT_TYPE,
-                                      ssh_server=ssh_server,
-                                      ssh_port=ssh_port,
-                                      ssh_username=ssh_username,
-                                      ssh_password=ssh_password)
+        configuration = {
+            'hostname': hostname,
+            'port': port,
+            'schemaName': schema_name,
+            'databaseName': database_name,
+            'username': username,
+            'password': password,
+            'skipValidation': skip_validation,
+            'sinkType': REDSHIFT_TYPE
+        }
+        self.__add_ssh_config(configuration, ssh_password, ssh_port, ssh_server, ssh_username)
 
+        return self.set_output(configuration, REDSHIFT_NAME)
+
+    def __add_ssh_config(self, configuration, ssh_password, ssh_port, ssh_server, ssh_username):
+        ssh_config = self.__get_ssh_config(ssh_server=ssh_server,
+                                           ssh_port=ssh_port,
+                                           ssh_username=ssh_username,
+                                           ssh_password=ssh_password)
+        if ssh_config:
+            configuration['ssh'] = json.dumps(ssh_config) \
+                if isinstance(ssh_config, dict) else ssh_config
 
     def get_redshift_config(self):
         redshift_node = self.get_redshift_node()
@@ -913,18 +955,19 @@ class Alooma(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        return self.set_output_config(account_name=account_name,
-                                      warehouse_name=warehouse_name,
-                                      schema_name=schema_name,
-                                      database_name=database_name,
-                                      username=username,
-                                      password=password,
-                                      skip_validation=skip_validation,
-                                      sink_type=SNOWFLAKE_TYPE,
-                                      ssh_server=ssh_server,
-                                      ssh_port=ssh_port,
-                                      ssh_username=ssh_username,
-                                      ssh_password=ssh_password)
+        configuration = {
+            'warehouseName': warehouse_name,
+            'accountName': account_name,
+            'schemaName': schema_name,
+            'databaseName': database_name,
+            'username': username,
+            'password': password,
+            'skipValidation': skip_validation,
+            'sinkType': SNOWFLAKE_TYPE
+        }
+        self.__add_ssh_config(configuration, ssh_password, ssh_port, ssh_server, ssh_username)
+
+        return self.set_output(configuration, SNOWFLAKE_NAME)
 
 
     def get_snowflake_config(self):
@@ -958,20 +1001,23 @@ class Alooma(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        return self.set_output_config(schema_name=schema_name,
-                                      database_name=database_name,
-                                      skip_validation=skip_validation,
-                                      sink_type=BIGQUERY_TYPE,
-                                      ssh_server=ssh_server,
-                                      ssh_port=ssh_port,
-                                      ssh_username=ssh_username,
-                                      ssh_password=ssh_password)
+        configuration = {
+            'schemaName': schema_name,
+            'databaseName': database_name,
+            'skipValidation': skip_validation,
+            'sinkType': BIGQUERY_TYPE
+        }
+        self.__add_ssh_config(configuration, ssh_password, ssh_port, ssh_server, ssh_username)
+
+        return self.set_output_config(configuration, BIGQUERY_NAME)
+
 
     def get_bigquery_config(self):
         bigquery_node = self.get_bigquery_node()
         if bigquery_node:
             return bigquery_node['configuration']
         return None
+
 
     @staticmethod
     def parse_notifications_errors(notifications):
