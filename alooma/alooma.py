@@ -96,7 +96,7 @@ class Alooma(object):
                                 failure_reason=response.reason,
                                 failure_content="\nfailure content: " +
                                                 response.content if
-                                                response.content else ""))
+                                response.content else ""))
 
     def __login(self):
         url = self.rest_url + 'login'
@@ -217,8 +217,8 @@ class Alooma(object):
         """
         formats = ["json", "delimited", "other"]
         if file_format not in formats:
-            raise ValueError("File format cannot be '{file_format}', it has to "
-                             "be one of those: {formats}"
+            raise ValueError("File format cannot be '{file_format}', "
+                             "it has to be one of those: {formats}"
                              .format(file_format=file_format,
                                      formats=", ".join(formats)))
 
@@ -242,7 +242,8 @@ class Alooma(object):
                 'fileFormat': json.dumps(file_format_config)
             }
         }
-        return self.create_input(input_post_data=post_data, one_click=one_click)
+        return self.create_input(input_post_data=post_data,
+                                 one_click=one_click)
 
     def create_mixpanel_input(self, mixpanel_api_key, mixpanel_api_secret,
                               from_date, name, transform_id=None,
@@ -256,14 +257,15 @@ class Alooma(object):
                 "fromDate": from_date
             }
         }
-        return self.create_input(input_post_data=post_data, one_click=one_click)
+        return self.create_input(input_post_data=post_data,
+                                 one_click=one_click)
 
     def create_input(self, input_post_data, one_click=True):
         structure = self.get_structure()
         previous_nodes = [x for x in structure['nodes']
                           if x['name'] == input_post_data['name']]
 
-        one_click_str = "" if one_click == False else "?automap=true"
+        one_click_str = "" if one_click is False else "?automap=true"
         url = self.rest_url + ('plumbing/inputs%s' % one_click_str)
 
         self.__send_request(requests.post, url, json=input_post_data)
@@ -423,7 +425,6 @@ class Alooma(object):
         :return:    the field that we wanna find and to do on it some changes.
                     if the field is not found then raise exception
         """
-
         fields_list = field_path.split('.', 1)
         if not fields_list:
             return None
@@ -495,8 +496,8 @@ class Alooma(object):
                             codes. status codes may be any string returned by
                             `get_sample_status_codes()`
         :return:    a list of 10 samples. if event_type is passed, only samples
-                    of that event type will be returned. if error_codes is given
-                    only samples of those status codes are returned.
+                    of that event type will be returned. if error_codes
+                    is given only samples of those status codes are returned.
         """
         url = self.rest_url + 'samples'
         if event_type:
@@ -526,7 +527,7 @@ class Alooma(object):
                 res = self.__send_request(requests.get, defaults_url)
                 return parse_response_to_json(res)["PYTHON"]
             else:
-                #TODO: remove silent defaults?
+                # TODO: remove silent defaults?
                 # notify user of lack of code if not main
                 raise
 
@@ -546,7 +547,8 @@ class Alooma(object):
         :return:        the results of a test run of the temp_transform on the
                         given sample. This returns a dictionary with the
                         following keys:
-                            'output' - strings printed by the transform function
+                            'output' - strings printed by the transform
+                                       function
                             'result' - the resulting event
                             'runtime' - millis it took the function to run
         """
@@ -570,9 +572,9 @@ class Alooma(object):
         :param event_type:  optional string containing event type name
         :param status_code: optional status code string
         :return:    a list of samples (filtered by the event type & status code
-                    if provided), for each sample, a 'result' key is added which
-                    includes the result of the current transform function after
-                    it was run with the sample.
+                    if provided), for each sample, a 'result' key is added
+                    which includes the result of the current transform function
+                    after it was run with the sample.
         """
         curr_transform = self.get_transform()
         samples_stats = self.get_samples_stats()
@@ -598,12 +600,14 @@ class Alooma(object):
                             "`list`")
         for metric_name in metric_names:
             if metric_name not in METRICS_LIST:
-                raise Exception("Metrics '{name}' not exists, please use one or"
-                                " more of those: {metrics}".format(
-                                 name=metric_names, metrics=METRICS_LIST))
+                raise Exception("Metrics '{name}' not exists, please "
+                                "use one or more of those: {metrics}"
+                                .format(name=metric_names,
+                                        metrics=METRICS_LIST))
 
         metrics_string = ",".join(metric_names)
-        url = self.rest_url + 'metrics?metrics=%s&from=-%dmin&resolution=%dmin'\
+        url = self.rest_url + 'metrics?metrics=%s&from=-%dmin' \
+                              '&resolution=%dmin' \
                               '' % (metrics_string, minutes, minutes)
         res = self.__send_request(requests.get, url)
 
@@ -732,8 +736,7 @@ class Alooma(object):
 
         return res
 
-
-# TODO standardize the responses (handling of error code etc)
+    # TODO standardize the responses (handling of error code etc)
     def get_tables(self):
         url = self.rest_url + 'tables'
         res = self.__send_request(requests.get, url)
@@ -784,30 +787,40 @@ class Alooma(object):
         :param output_name: Output name that would displayed in the UI
         :return: :type dict. Response's content
         """
-        output_node = self.get_output_config()
+        output_node = self.get_output_node()
+        print output_node
+
+        current_sink_type = output_node['type']
+        desired_sink_type = output_config['sinkType']
+
+        if current_sink_type.upper() != desired_sink_type.upper():
+            raise Exception("Changing output types is not supported. "
+                            "Contact support@alooma.io in order "
+                            "to change output type "
+                            "from {current} to {desired}."
+                            .format(current=current_sink_type,
+                                    desired=desired_sink_type))
         if 'skipValidation' not in output_config:
             output_config = dict(skipValidation=False,
                                  **output_config)
-
-        sink_type = output_config['sinkType']
-        output_name = output_name if output_name is not None else sink_type.title()
+        output_name = output_name if output_name is not None \
+            else current_sink_type.title()
 
         payload = {
             'configuration': output_config,
             'category': 'OUTPUT',
             'id': output_node['id'],
             'name': output_name,
-            'type': sink_type.upper(),
+            'type': current_sink_type.upper(),
             'deleted': False
         }
         return self.__set_output_config(output_node, payload)
 
-
     def set_output_config(self, hostname, port, schema_name, database_name,
-                          username, password,
-                          skip_validation=False, sink_type=None, output_name=None,
-                          ssh_server=None, ssh_port=None, ssh_username=None,
-                          ssh_password=None):
+                          username, password, skip_validation=False,
+                          sink_type=None, output_name=None,
+                          ssh_server=None, ssh_port=None,
+                          ssh_username=None, ssh_password=None):
         """
         DEPRECATED  - use set_output() instead.
         Set Output configuration
@@ -854,11 +867,11 @@ class Alooma(object):
             'type': sink_type.upper(),
             'deleted': False
         }
-        payload = dict((k,v) for k,v in payload.iteritems() if v is not None)
-        self.__add_ssh_config(payload['configuration'], ssh_password, ssh_port, ssh_server, ssh_username)
+        payload = dict((k, v) for k, v in payload.iteritems() if v is not None)
+        self.__add_ssh_config(payload['configuration'], ssh_password,
+                              ssh_port, ssh_server, ssh_username)
 
         return self.__set_output_config(output_node, payload)
-
 
     def get_output_config(self):
         output_node = self.get_output_node()
@@ -866,10 +879,8 @@ class Alooma(object):
             return output_node['configuration']
         return None
 
-
     def get_redshift_node(self):
         return self._get_node_by('type', REDSHIFT_TYPE)
-
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False,
@@ -883,8 +894,9 @@ class Alooma(object):
         :param database_name: Redshift database name
         :param username: Redshift username
         :param password: Redshift password
-        :param skip_validation: :type bool: True for skip Redshift configuration
-                                            validation, False for validate
+        :param skip_validation: :type bool: True for skip Redshift
+                                            configuration validation,
+                                            False for validate
                                             Redshift configurations
         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
                            from the public internet
@@ -906,11 +918,13 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType': REDSHIFT_TYPE
         }
-        self.__add_ssh_config(configuration, ssh_password, ssh_port, ssh_server, ssh_username)
+        self.__add_ssh_config(configuration, ssh_password, ssh_port,
+                              ssh_server, ssh_username)
 
         return self.set_output(configuration, REDSHIFT_NAME)
 
-    def __add_ssh_config(self, configuration, ssh_password, ssh_port, ssh_server, ssh_username):
+    def _add_ssh_config(self, configuration, ssh_password, ssh_port,
+                        ssh_server, ssh_username):
         ssh_config = self.__get_ssh_config(ssh_server=ssh_server,
                                            ssh_port=ssh_port,
                                            ssh_username=ssh_username,
@@ -925,15 +939,14 @@ class Alooma(object):
             return redshift_node['configuration']
         return None
 
-
     def get_snowflake_node(self):
         return self._get_node_by('type', SNOWFLAKE_TYPE)
 
-
-    def set_snowflake_config(self, account_name, warehouse_name, schema_name, database_name,
-                            username, password, skip_validation=False,
-                            ssh_server=None, ssh_port=None, ssh_username=None,
-                            ssh_password=None):
+    def set_snowflake_config(self, account_name, warehouse_name, schema_name,
+                             database_name, username, password,
+                             skip_validation=False, ssh_server=None,
+                             ssh_port=None, ssh_username=None,
+                             ssh_password=None):
         """
         Set Snowflake configuration
         :param account_name: Snowflake account name
@@ -942,8 +955,9 @@ class Alooma(object):
         :param database_name: Snowflake database name
         :param username: Snowflake username
         :param password: Snowflake password
-        :param skip_validation: :type bool: True for skip Snowflake configuration
-                                            validation, False for validate
+        :param skip_validation: :type bool: True for skip Snowflake
+                                            configuration validation,
+                                            False for validate
                                             Snowflake configurations
         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
                            from the public internet
@@ -965,10 +979,10 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType': SNOWFLAKE_TYPE
         }
-        self.__add_ssh_config(configuration, ssh_password, ssh_port, ssh_server, ssh_username)
+        self.__add_ssh_config(configuration, ssh_password, ssh_port,
+                              ssh_server, ssh_username)
 
         return self.set_output(configuration, SNOWFLAKE_NAME)
-
 
     def get_snowflake_config(self):
         snowflake_node = self.get_snowflake_node()
@@ -976,20 +990,20 @@ class Alooma(object):
             return snowflake_node['configuration']
         return None
 
-
     def get_bigquery_node(self):
         return self._get_node_by('type', BIGQUERY_TYPE)
 
-
-    def set_bigquery_config(self, schema_name, database_name, skip_validation=False,
-                             ssh_server=None, ssh_port=None, ssh_username=None,
-                             ssh_password=None):
+    def set_bigquery_config(self, schema_name, database_name,
+                            skip_validation=False, ssh_server=None,
+                            ssh_port=None, ssh_username=None,
+                            ssh_password=None):
         """
         Set BigQuery configuration
         :param schema_name: BigQuery schema
         :param database_name: BigQuery database name
-        :param skip_validation: :type bool: True for skip BigQuery configuration
-                                            validation, False for validate
+        :param skip_validation: :type bool: True for skip BigQuery
+                                            configuration validation,
+                                            False for validate
                                             BigQuery configurations
         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
                            from the public internet
@@ -1007,17 +1021,16 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType': BIGQUERY_TYPE
         }
-        self.__add_ssh_config(configuration, ssh_password, ssh_port, ssh_server, ssh_username)
+        self.__add_ssh_config(configuration, ssh_password,
+                              ssh_port, ssh_server, ssh_username)
 
-        return self.set_output_config(configuration, BIGQUERY_NAME)
-
+        return self.set_output(configuration, BIGQUERY_NAME)
 
     def get_bigquery_config(self):
         bigquery_node = self.get_bigquery_node()
         if bigquery_node:
             return bigquery_node['configuration']
         return None
-
 
     @staticmethod
     def parse_notifications_errors(notifications):
@@ -1026,7 +1039,7 @@ class Alooma(object):
                 notification["typeDescription"] + "\n\t"
                 for notification in notifications["messages"]
                 if notification["severity"] == "error"
-            ]
+                ]
         )
         return messages_to_str
 
@@ -1053,7 +1066,7 @@ class Alooma(object):
 
     def delete_event_type(self, event_type):
         event_type = urllib.parse.quote(event_type, safe='')
-        url = self.rest_url + 'event-types/{event_type}'\
+        url = self.rest_url + 'event-types/{event_type}' \
             .format(event_type=event_type)
 
         self.__send_request(requests.delete, url)
@@ -1115,7 +1128,7 @@ class Alooma(object):
                                 json=restream_click_button_json)
         else:
             raise Exception("Could not find '{restream_type}' type".format(
-                    restream_type=RESTREAM_QUEUE_TYPE_NAME))
+                restream_type=RESTREAM_QUEUE_TYPE_NAME))
 
     def get_restream_queue_size(self):
         """
@@ -1166,13 +1179,13 @@ class Alooma(object):
 
     @staticmethod
     def get_public_ssh_key():
-        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+t5OKwGcUGYRdDAC8ovblV" \
-               "/10AoBfuI/nmkxgRx0J+M3tIdTdxW0Layqb6Xtz8PMsxy1uhM+Rw6cXhU/FQW" \
-               "bOr7MB5hJUqXY5OI4NVtI+cc2diCyYUjgCIb7dBSKoyZecJqp3bQuekuZT/Ow" \
-               "Z40vLc42g6cUV01b5loV9pU9DvRl6zZXHyrE7fssJ90q2lhvuBjltU7g543bU" \
-               "klkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3mVEX/l4GDIsTkLIR" \
-               "zHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM/PdJJEHh65986tgprb" \
-               "I0Lz+geqYmASgF deploy@alooma.io"
+        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+t5OKwGcUGYRdDAC8ov" \
+               "blV/10AoBfuI/nmkxgRx0J+M3tIdTdxW0Layqb6Xtz8PMsxy1uhM+Rw6cX" \
+               "hU/FQWbOr7MB5hJUqXY5OI4NVtI+cc2diCyYUjgCIb7dBSKoyZecJqp3bQ" \
+               "uekuZT/OwZ40vLc42g6cUV01b5loV9pU9DvRl6zZXHyrE7fssJ90q2lhvu" \
+               "BjltU7g543bUklkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3m" \
+               "VEX/l4GDIsTkLIRzHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM" \
+               "/PdJJEHh65986tgprbI0Lz+geqYmASgF deploy@alooma.io"
 
 
 def response_is_ok(response):
@@ -1185,7 +1198,8 @@ def parse_response_to_json(response):
 
 def non_empty_datapoint_values(data):
     """
-    From a graphite like response, return the values of the non-empty datapoints
+    From a graphite like response, return the values of the
+    non-empty datapoints
     """
     if data:
         return [t[0] for t in data[0]['datapoints'] if t[0]]
