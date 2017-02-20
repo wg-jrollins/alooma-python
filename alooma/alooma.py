@@ -22,14 +22,20 @@ DEFAULT_ENCODING = 'utf-8'
 
 RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 
-REDSHIFT_TYPE = "REDSHIFT"
-REDSHIFT_NAME = "Redshift"
-
-SNOWFLAKE_TYPE = "SNOWFLAKE"
-SNOWFLAKE_NAME = "Snowflake"
-
-BIGQUERY_TYPE = "BIGQUERY"
-BIGQUERY_NAME = "BigQuery"
+OUTPUTS = {
+    "redshift": {
+        "type": "REDSHIFT",
+        "name": "Redshiftf"
+    },
+    "snowflake": {
+        "type": "SNOWFLAKE",
+        "name": "Snowflake"
+    },
+    "bigquery": {
+        "type": "BIGQUERY",
+        "name": "BigQuery"
+    }
+}
 
 METRICS_LIST = [
     'EVENT_SIZE_AVG',
@@ -771,11 +777,6 @@ class Alooma(object):
     def get_output_node(self):
         return self._get_node_by('category', 'OUTPUT')
 
-    def __set_output_config(self, output_node, payload):
-        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
-        res = self.__send_request(requests.put, url, json=payload)
-        return parse_response_to_json(res)
-
     def set_output(self, output_config, output_name=None):
         """
         Set Output configuration
@@ -788,7 +789,6 @@ class Alooma(object):
         :return: :type dict. Response's content
         """
         output_node = self.get_output_node()
-        print output_node
 
         current_sink_type = output_node['type']
         desired_sink_type = output_config['sinkType']
@@ -801,10 +801,10 @@ class Alooma(object):
                             .format(current=current_sink_type,
                                     desired=desired_sink_type))
         if 'skipValidation' not in output_config:
-            output_config = dict(skipValidation=False,
-                                 **output_config)
+            output_config['skipValidation'] = False
+
         output_name = output_name if output_name is not None \
-            else current_sink_type.title()
+            else OUTPUTS[current_sink_type.lower()]['name']
 
         payload = {
             'configuration': output_config,
@@ -814,7 +814,9 @@ class Alooma(object):
             'type': current_sink_type.upper(),
             'deleted': False
         }
-        return self.__set_output_config(output_node, payload)
+        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
+        res = self.__send_request(requests.put, url, json=payload)
+        return parse_response_to_json(res)
 
     def set_output_config(self, hostname, port, schema_name, database_name,
                           username, password, skip_validation=False,
@@ -826,8 +828,6 @@ class Alooma(object):
         Set Output configuration
         :param hostname: Output hostname
         :param port: Output port
-        :param account_name: Output account name
-        :param warehouse_name: Output warehouse name
         :param schema_name: Output schema
         :param database_name: Output database name
         :param username: Output username
@@ -867,11 +867,12 @@ class Alooma(object):
             'type': sink_type.upper(),
             'deleted': False
         }
-        payload = dict((k, v) for k, v in payload.iteritems() if v is not None)
         self.__add_ssh_config(payload['configuration'], ssh_password,
                               ssh_port, ssh_server, ssh_username)
 
-        return self.__set_output_config(output_node, payload)
+        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
+        res = self.__send_request(requests.put, url, json=payload)
+        return parse_response_to_json(res)
 
     def get_output_config(self):
         output_node = self.get_output_node()
@@ -880,7 +881,7 @@ class Alooma(object):
         return None
 
     def get_redshift_node(self):
-        return self._get_node_by('type', REDSHIFT_TYPE)
+        return self._get_node_by('type',  OUTPUTS['redshift']['type'])
 
     def set_redshift_config(self, hostname, port, schema_name, database_name,
                             username, password, skip_validation=False,
@@ -916,12 +917,12 @@ class Alooma(object):
             'username': username,
             'password': password,
             'skipValidation': skip_validation,
-            'sinkType': REDSHIFT_TYPE
+            'sinkType': OUTPUTS['redshift']['type']
         }
         self.__add_ssh_config(configuration, ssh_password, ssh_port,
                               ssh_server, ssh_username)
 
-        return self.set_output(configuration, REDSHIFT_NAME)
+        return self.set_output(configuration)
 
     def _add_ssh_config(self, configuration, ssh_password, ssh_port,
                         ssh_server, ssh_username):
@@ -940,7 +941,7 @@ class Alooma(object):
         return None
 
     def get_snowflake_node(self):
-        return self._get_node_by('type', SNOWFLAKE_TYPE)
+        return self._get_node_by('type',  OUTPUTS['snowflake']['type'])
 
     def set_snowflake_config(self, account_name, warehouse_name, schema_name,
                              database_name, username, password,
@@ -977,12 +978,12 @@ class Alooma(object):
             'username': username,
             'password': password,
             'skipValidation': skip_validation,
-            'sinkType': SNOWFLAKE_TYPE
+            'sinkType': OUTPUTS['snowflake']['type']
         }
         self.__add_ssh_config(configuration, ssh_password, ssh_port,
                               ssh_server, ssh_username)
 
-        return self.set_output(configuration, SNOWFLAKE_NAME)
+        return self.set_output(configuration)
 
     def get_snowflake_config(self):
         snowflake_node = self.get_snowflake_node()
@@ -991,7 +992,7 @@ class Alooma(object):
         return None
 
     def get_bigquery_node(self):
-        return self._get_node_by('type', BIGQUERY_TYPE)
+        return self._get_node_by('type',  OUTPUTS['bigquery']['type'])
 
     def set_bigquery_config(self, schema_name, database_name,
                             skip_validation=False, ssh_server=None,
@@ -1019,12 +1020,12 @@ class Alooma(object):
             'schemaName': schema_name,
             'databaseName': database_name,
             'skipValidation': skip_validation,
-            'sinkType': BIGQUERY_TYPE
+            'sinkType':  OUTPUTS['bigquery']['type']
         }
         self.__add_ssh_config(configuration, ssh_password,
                               ssh_port, ssh_server, ssh_username)
 
-        return self.set_output(configuration, BIGQUERY_NAME)
+        return self.set_output(configuration)
 
     def get_bigquery_config(self):
         bigquery_node = self.get_bigquery_node()
