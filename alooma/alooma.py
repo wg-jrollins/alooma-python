@@ -781,12 +781,11 @@ class Alooma(object):
         """
         Set Output configuration
         :param output_config: :type dict. Output configuration.
-            Should contain output connect info and:
-            :param skip_validation: :type bool: True for skip output configuration
-                                                validation, False for validate
-                                                output configurations
-            :param sink_type: Output type. Currently support REDSHIFT,
-                              BIGQUERY, SNOWFLAKE
+            Should contain output-specific configurations 
+            (see examples below) and the following parameters:
+            :param skip_validation: :type bool: True skips output configuration
+                                                validation
+            :param sink_type: Output type. REDSHIFT, BIGQUERY or SNOWFLAKE
         Redshift example: {"hostname":"redshift-host", "port":5439,
                            "schemaName":"public", "databaseName":"some_db",
                            "username":"user", "password":"password",
@@ -797,7 +796,7 @@ class Alooma(object):
                             "skipValidation":"false", "sinkType":"SNOWFLAKE"}
         BigQuery example: {"databaseName":"some-db", "schemaName":"some-schema",
                            "skipValidation":"false", "sinkType":"BIGQUERY"}
-        :param output_name: Output name that would displayed in the UI
+        :param output_name: UI display name
         :return: :type dict. Response's content
         """
         output_node = self.get_output_node()
@@ -894,10 +893,8 @@ class Alooma(object):
         :param database_name: Redshift database name
         :param username: Redshift username
         :param password: Redshift password
-        :param skip_validation: :type bool: True for skip Redshift
-                                            configuration validation,
-                                            False for validate
-                                            Redshift configurations
+        :param skip_validation: :type bool: True skips configuration
+                                            validation
         :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
                            from the public internet
         :param ssh_port: (Optional) The SSH port of the SSH server as seen from
@@ -953,10 +950,8 @@ class Alooma(object):
         :param database_name: Snowflake database name
         :param username: Snowflake username
         :param password: Snowflake password
-        :param skip_validation: :type bool: True for skip Snowflake
-                                            configuration validation,
-                                            False for validate
-                                            Snowflake configurations
+        :param skip_validation: :type bool: True skips configuration 
+                                            validation
         :return: :type dict. Response's content
         """
         configuration = {
@@ -986,10 +981,8 @@ class Alooma(object):
         Set BigQuery configuration
         :param schema_name: BigQuery schema
         :param database_name: BigQuery database name
-        :param skip_validation: :type bool: True for skip BigQuery
-                                            configuration validation,
-                                            False for validate
-                                            BigQuery configurations
+        :param skip_validation: :type bool: True skips configuration 
+                                            validation
         :return: :type dict. Response's content
         """
         configuration = {
