@@ -787,35 +787,16 @@ class Alooma(object):
                                                 output configurations
             :param sink_type: Output type. Currently support REDSHIFT,
                               BIGQUERY, SNOWFLAKE
-        Redshift example:
-            {
-                "hostname":"redshift-host",
-                "port":5439,
-                "schemaName":"public",
-                "databaseName":"some_db",
-                "username":"user",
-                "password":"password",
-                "skipValidation":false,
-                "sinkType":"REDSHIFT"
-            }
-        Snowflake example:
-            {
-                "username":"user",
-                "password":"password",
-                "accountName":"some-account",
-                "warehouseName":"SOME_WH",
-                "databaseName":"SOME_DB",
-                "schemaName":"PUBLIC",
-                "skipValidation":"false",
-                "sinkType":"SNOWFLAKE"
-            }
-        BigQuery example:
-            {
-                "databaseName":"some-db",
-                "schemaName":"some-schema",
-                "skipValidation":"false",
-                "sinkType":"BIGQUERY"
-            }
+        Redshift example: {"hostname":"redshift-host", "port":5439,
+                           "schemaName":"public", "databaseName":"some_db",
+                           "username":"user", "password":"password",
+                           "skipValidation":false, "sinkType":"REDSHIFT"}
+        Snowflake example: {"username":"user", "password":"password",
+                            "accountName":"some-account", "warehouseName":"SOME_WH",
+                            "databaseName":"SOME_DB", "schemaName":"PUBLIC",
+                            "skipValidation":"false", "sinkType":"SNOWFLAKE"}
+        BigQuery example: {"databaseName":"some-db", "schemaName":"some-schema",
+                           "skipValidation":"false", "sinkType":"BIGQUERY"}
         :param output_name: Output name that would displayed in the UI
         :return: :type dict. Response's content
         """
