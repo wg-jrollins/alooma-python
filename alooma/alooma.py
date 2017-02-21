@@ -780,11 +780,42 @@ class Alooma(object):
     def set_output(self, output_config, output_name=None):
         """
         Set Output configuration
-        :param output_config: :type dict. Output connect info.
-        :param skip_validation: :type bool: True for skip Output configuration
-                                            validation, False for validate
-                                            Output configurations
-        :param sink_type: Output type. Currently support REDSHIFT, MEMSQL
+        :param output_config: :type dict. Output configuration.
+            Should contain output connect info and:
+            :param skip_validation: :type bool: True for skip output configuration
+                                                validation, False for validate
+                                                output configurations
+            :param sink_type: Output type. Currently support REDSHIFT,
+                              BIGQUERY, SNOWFLAKE
+        Redshift example:
+            {
+                "hostname":"redshift-host",
+                "port":5439,
+                "schemaName":"public",
+                "databaseName":"some_db",
+                "username":"user",
+                "password":"password",
+                "skipValidation":false,
+                "sinkType":"REDSHIFT"
+            }
+        Snowflake example:
+            {
+                "username":"user",
+                "password":"password",
+                "accountName":"some-account",
+                "warehouseName":"SOME_WH",
+                "databaseName":"SOME_DB",
+                "schemaName":"PUBLIC",
+                "skipValidation":"false",
+                "sinkType":"SNOWFLAKE"
+            }
+        BigQuery example:
+            {
+                "databaseName":"some-db",
+                "schemaName":"some-schema",
+                "skipValidation":"false",
+                "sinkType":"BIGQUERY"
+            }
         :param output_name: Output name that would displayed in the UI
         :return: :type dict. Response's content
         """
@@ -847,32 +878,19 @@ class Alooma(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        output_node = self._get_node_by('category', 'OUTPUT')
-        name = output_name if output_name is not None else sink_type.title()
-
-        payload = {
-            'configuration': {
-                'hostname': hostname,
-                'port': port,
-                'schemaName': schema_name,
-                'databaseName': database_name,
-                'username': username,
-                'password': password,
-                'skipValidation': skip_validation,
-                'sinkType': sink_type.upper()
-            },
-            'category': 'OUTPUT',
-            'id': output_node['id'],
-            'name': name,
-            'type': sink_type.upper(),
-            'deleted': False
+        configuration =  {
+            'hostname': hostname,
+            'port': port,
+            'schemaName': schema_name,
+            'databaseName': database_name,
+            'username': username,
+            'password': password,
+            'skipValidation': skip_validation,
+            'sinkType': sink_type.upper()
         }
-        self.__add_ssh_config(payload['configuration'], ssh_password,
-                              ssh_port, ssh_server, ssh_username)
-
-        url = self.rest_url + 'plumbing/nodes/' + output_node['id']
-        res = self.__send_request(requests.put, url, json=payload)
-        return parse_response_to_json(res)
+        self.__add_ssh_config(configuration, ssh_password, ssh_port,
+                              ssh_server, ssh_username)
+        return set_output(configuration, output_name)
 
     def get_output_config(self):
         output_node = self.get_output_node()
@@ -945,9 +963,7 @@ class Alooma(object):
 
     def set_snowflake_config(self, account_name, warehouse_name, schema_name,
                              database_name, username, password,
-                             skip_validation=False, ssh_server=None,
-                             ssh_port=None, ssh_username=None,
-                             ssh_password=None):
+                             skip_validation=False):
         """
         Set Snowflake configuration
         :param account_name: Snowflake account name
@@ -960,14 +976,6 @@ class Alooma(object):
                                             configuration validation,
                                             False for validate
                                             Snowflake configurations
-        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
-                           from the public internet
-        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
-                         the public internet (default port is 22)
-        :param ssh_username: (Optional) The user name on the SSH server for the
-                             SSH connection (the standard is alooma)
-        :param ssh_password: (Optional) The password that matches the user name
-                             on the SSH server
         :return: :type dict. Response's content
         """
         configuration = {
@@ -980,9 +988,6 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType': OUTPUTS['snowflake']['type']
         }
-        self.__add_ssh_config(configuration, ssh_password, ssh_port,
-                              ssh_server, ssh_username)
-
         return self.set_output(configuration)
 
     def get_snowflake_config(self):
@@ -995,9 +1000,7 @@ class Alooma(object):
         return self._get_node_by('type',  OUTPUTS['bigquery']['type'])
 
     def set_bigquery_config(self, schema_name, database_name,
-                            skip_validation=False, ssh_server=None,
-                            ssh_port=None, ssh_username=None,
-                            ssh_password=None):
+                            skip_validation=False):
         """
         Set BigQuery configuration
         :param schema_name: BigQuery schema
@@ -1006,14 +1009,6 @@ class Alooma(object):
                                             configuration validation,
                                             False for validate
                                             BigQuery configurations
-        :param ssh_server: (Optional) The IP or DNS of your SSH server as seen
-                           from the public internet
-        :param ssh_port: (Optional) The SSH port of the SSH server as seen from
-                         the public internet (default port is 22)
-        :param ssh_username: (Optional) The user name on the SSH server for the
-                             SSH connection (the standard is alooma)
-        :param ssh_password: (Optional) The password that matches the user name
-                             on the SSH server
         :return: :type dict. Response's content
         """
         configuration = {
@@ -1022,9 +1017,6 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType':  OUTPUTS['bigquery']['type']
         }
-        self.__add_ssh_config(configuration, ssh_password,
-                              ssh_port, ssh_server, ssh_username)
-
         return self.set_output(configuration)
 
     def get_bigquery_config(self):
@@ -1040,7 +1032,7 @@ class Alooma(object):
                 notification["typeDescription"] + "\n\t"
                 for notification in notifications["messages"]
                 if notification["severity"] == "error"
-                ]
+            ]
         )
         return messages_to_str
 
