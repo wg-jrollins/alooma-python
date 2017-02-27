@@ -794,17 +794,17 @@ class Alooma(object):
                             "accountName":"some-account", "warehouseName":"SOME_WH",
                             "databaseName":"SOME_DB", "schemaName":"PUBLIC",
                             "skipValidation":"false", "sinkType":"SNOWFLAKE"}
-        BigQuery example: {"databaseName":"some-db", "schemaName":"some-schema",
+        BigQuery example: {"projectName":"some-project", "datasetName":"some-dataset",
                            "skipValidation":"false", "sinkType":"BIGQUERY"}
         :param output_name: UI display name
         :return: :type dict. Response's content
         """
         output_node = self.get_output_node()
 
-        current_sink_type = output_node['type']
-        desired_sink_type = output_config['sinkType']
+        current_sink_type = output_node['type'].upper()
+        desired_sink_type = output_config['sinkType'].upper()
 
-        if current_sink_type.upper() != desired_sink_type.upper():
+        if current_sink_type != desired_sink_type:
             raise Exception("Changing output types is not supported. "
                             "Contact support@alooma.io in order "
                             "to change output type "
@@ -814,6 +814,9 @@ class Alooma(object):
         if 'skipValidation' not in output_config:
             output_config['skipValidation'] = False
 
+        if current_sink_type == OUTPUTS['bigquery']['type']:
+            self.__fix_bigquery_config(output_config)
+
         output_name = output_name if output_name is not None \
             else OUTPUTS[current_sink_type.lower()]['name']
 
@@ -822,12 +825,20 @@ class Alooma(object):
             'category': 'OUTPUT',
             'id': output_node['id'],
             'name': output_name,
-            'type': current_sink_type.upper(),
+            'type': current_sink_type,
             'deleted': False
         }
         url = self.rest_url + 'plumbing/nodes/' + output_node['id']
         res = self.__send_request(requests.put, url, json=payload)
         return parse_response_to_json(res)
+
+    def __fix_bigquery_config(self, output_config):
+        config_url = self.rest_url + 'zk-configuration/featureUseBigQueryNewLoginConfiguration'
+        http_res = self.__send_request(requests.get, config_url)
+        json_res = parse_response_to_json(http_res)
+        if not json_res['featureUseBigQueryNewLoginConfiguration']:
+            output_config['databaseName'] = output_config.pop('projectName')
+            output_config['schemaName'] = output_config.pop('datasetName')
 
     def set_output_config(self, hostname, port, schema_name, database_name,
                           username, password, skip_validation=False,
@@ -975,7 +986,7 @@ class Alooma(object):
     def get_bigquery_node(self):
         return self._get_node_by('type',  OUTPUTS['bigquery']['type'])
 
-    def set_bigquery_config(self, schema_name, database_name,
+    def set_bigquery_config(self, project_name, dataset_name,
                             skip_validation=False):
         """
         Set BigQuery configuration
@@ -986,8 +997,8 @@ class Alooma(object):
         :return: :type dict. Response's content
         """
         configuration = {
-            'schemaName': schema_name,
-            'databaseName': database_name,
+            'projectName': project_name,
+            'datasetName': dataset_name,
             'skipValidation': skip_validation,
             'sinkType':  OUTPUTS['bigquery']['type']
         }
