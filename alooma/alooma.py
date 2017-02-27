@@ -868,9 +868,9 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType': sink_type.upper()
         }
-        self.__add_ssh_config(configuration, ssh_password, ssh_port,
-                              ssh_server, ssh_username)
-        return set_output(configuration, output_name)
+        self._add_ssh_config(configuration, ssh_password, ssh_port,
+                             ssh_server, ssh_username)
+        return self.set_output(configuration, output_name)
 
     def get_output_config(self):
         output_node = self.get_output_node()
@@ -915,8 +915,8 @@ class Alooma(object):
             'skipValidation': skip_validation,
             'sinkType': OUTPUTS['redshift']['type']
         }
-        self.__add_ssh_config(configuration, ssh_password, ssh_port,
-                              ssh_server, ssh_username)
+        self._add_ssh_config(configuration, ssh_password, ssh_port,
+                             ssh_server, ssh_username)
 
         return self.set_output(configuration)
 
