@@ -833,7 +833,7 @@ class Alooma(object):
         return parse_response_to_json(res)
 
     def __fix_bigquery_config(self, output_config):
-        config_url = self.rest_url + 'zk-configuration/featureUseBigQueryNewLoginConfiguration'
+        config_url = self.rest_url + 'zk-configuration/featureUseBigQueryNewConnectConfiguration'
         http_res = self.__send_request(requests.get, config_url)
         json_res = parse_response_to_json(http_res)
         if not json_res['featureUseBigQueryNewLoginConfiguration']:
