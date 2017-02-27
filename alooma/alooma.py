@@ -25,7 +25,7 @@ RESTREAM_QUEUE_TYPE_NAME = "RESTREAM"
 OUTPUTS = {
     "redshift": {
         "type": "REDSHIFT",
-        "name": "Redshiftf"
+        "name": "Redshift"
     },
     "snowflake": {
         "type": "SNOWFLAKE",
