@@ -63,7 +63,7 @@ class FailedToCreateInputException(Exception):
 
 
 class Alooma(object):
-    def __init__(self, hostname, username, password, port=8443,
+    def __init__(self, hostname, username, password, port=443,
                  server_prefix=''):
 
         self.hostname = hostname
@@ -798,7 +798,7 @@ class Alooma(object):
         """
         Set Output configuration
         :param output_config: :type dict. Output configuration.
-            Should contain output-specific configurations 
+            Should contain output-specific configurations
             (see examples below) and the following parameters:
             :param skip_validation: :type bool: True skips output configuration
                                                 validation
@@ -978,7 +978,7 @@ class Alooma(object):
         :param database_name: Snowflake database name
         :param username: Snowflake username
         :param password: Snowflake password
-        :param skip_validation: :type bool: True skips configuration 
+        :param skip_validation: :type bool: True skips configuration
                                             validation
         :return: :type dict. Response's content
         """
@@ -1009,7 +1009,7 @@ class Alooma(object):
         Set BigQuery configuration
         :param schema_name: BigQuery schema
         :param database_name: BigQuery database name
-        :param skip_validation: :type bool: True skips configuration 
+        :param skip_validation: :type bool: True skips configuration
                                             validation
         :return: :type dict. Response's content
         """
