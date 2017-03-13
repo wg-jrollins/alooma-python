@@ -63,7 +63,7 @@ class FailedToCreateInputException(Exception):
 
 
 class Alooma(object):
-    def __init__(self, hostname, username, password, port=443,
+    def __init__(self, hostname, username, password, port=8443,
                  server_prefix=''):
 
         self.hostname = hostname
@@ -1132,6 +1132,24 @@ class Alooma(object):
         """
         restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
         return restream_node["stats"]["availbleForRestream"]
+
+    def get_scheduled_queries(self):
+        """
+        Returns all scheduled queries
+        :return: a dict representing all scheduled queries
+        """
+        url = self.rest_url + 'consolidation'
+        return requests.get(url, **self.requests_params).json()
+
+    def get_scheduled_queries_in_error_state(self):
+        """
+        Returns all scheduled queries that have not successfully ran on
+        the last attempt
+        :return: a dict representing all failed scheduled queries
+        """
+        all_queries = self.get_scheduled_queries()
+        return {k: all_queries[k] for k in all_queries.keys()
+                if all_queries[k]['status'] not in ['active', 'done']}
 
     def _get_node_by(self, field, value):
         """
