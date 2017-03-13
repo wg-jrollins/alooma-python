@@ -798,7 +798,7 @@ class Alooma(object):
         """
         Set Output configuration
         :param output_config: :type dict. Output configuration.
-            Should contain output-specific configurations 
+            Should contain output-specific configurations
             (see examples below) and the following parameters:
             :param skip_validation: :type bool: True skips output configuration
                                                 validation
@@ -978,7 +978,7 @@ class Alooma(object):
         :param database_name: Snowflake database name
         :param username: Snowflake username
         :param password: Snowflake password
-        :param skip_validation: :type bool: True skips configuration 
+        :param skip_validation: :type bool: True skips configuration
                                             validation
         :return: :type dict. Response's content
         """
@@ -1009,7 +1009,7 @@ class Alooma(object):
         Set BigQuery configuration
         :param schema_name: BigQuery schema
         :param database_name: BigQuery database name
-        :param skip_validation: :type bool: True skips configuration 
+        :param skip_validation: :type bool: True skips configuration
                                             validation
         :return: :type dict. Response's content
         """
@@ -1132,6 +1132,24 @@ class Alooma(object):
         """
         restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
         return restream_node["stats"]["availbleForRestream"]
+
+    def get_scheduled_queries(self):
+        """
+        Returns all scheduled queries
+        :return: a dict representing all scheduled queries
+        """
+        url = self.rest_url + 'consolidation'
+        return requests.get(url, **self.requests_params).json()
+
+    def get_scheduled_queries_in_error_state(self):
+        """
+        Returns all scheduled queries that have not successfully ran on
+        the last attempt
+        :return: a dict representing all failed scheduled queries
+        """
+        all_queries = self.get_scheduled_queries()
+        return {k: all_queries[k] for k in all_queries.keys()
+                if all_queries[k]['status'] not in ['active', 'done']}
 
     def _get_node_by(self, field, value):
         """
