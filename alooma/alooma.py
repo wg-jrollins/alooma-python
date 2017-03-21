@@ -57,6 +57,9 @@ METRICS_LIST = [
     'EVENTS_IN_TRANSIT'
 ]
 
+DEFAULT_TIMEOUT = 60
+
+MAPPING_TIMEOUT = 300
 
 class FailedToCreateInputException(Exception):
     pass
@@ -74,7 +77,7 @@ class Alooma(object):
         self.password = password
         self.cookie = None
         self.requests_params = {
-            'timeout': 60,
+            'timeout': DEFAULT_TIMEOUT,
             'cookies': self.cookie
         }
 
@@ -336,11 +339,11 @@ class Alooma(object):
         transform = DEFAULT_TRANSFORM_CODE
         self.set_transform(transform=transform)
 
-    def set_mapping(self, mapping, event_type):
+    def set_mapping(self, mapping, event_type, timeout=MAPPING_TIMEOUT):
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
-        res = self.__send_request(requests.post, url, json=mapping)
+        res = self.__send_request(requests.post, url, json=mapping, timeout=timeout)
         return res
 
     def discard_event_type(self, event_type):
