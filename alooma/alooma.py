@@ -1032,6 +1032,44 @@ class Alooma(object):
                "zHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM/PdJJEHh65986tgprb" \
                "I0Lz+geqYmASgF deploy@alooma.io"
 
+    def get_specific_deployment_name(self):
+        """ Return Alooma Specific Deployment Name """
+        cfg = self.get_config()
+        return cfg['zkConfigurations']['deploymentName']
+
+    ## CONSOLIDATIONS ##
+    def schedule_query(self, event_type, query, frequency=None, run_at=None):
+        """ Return Requests Response to Create Query
+
+            :param event_type: Alooma Event Type Related to Query (or not)
+            :param query: Desired Query to Schedule
+            :param frequency: Desired hours between query runs
+            :param run_at: Cron like string to run query on
+
+        NOTE: you must select either frequency or run_at
+        """
+        scheduled_query_url = self.rest_url + 'consolidation'
+        specific_deployment_name = self.get_specific_deployment_name()
+        
+        # Prep Data for Consolidation Post
+        data = {
+            "query_type": "custom",
+            "deployment_name": specific_deployment_name,
+            "custom_query": query,
+            "event_type": event_type
+        }
+
+        if frequency is not None:
+            data['frequency'] = frequency
+        elif runs_at is not None:
+            data['run_at'] = run_at
+        else:
+            raise Exception('Must specify either run_at or frequency')
+        
+        return self.__send_request(requests.post, 
+                                   scheduled_query_url, 
+                                   json=data)
+
 
 def response_is_ok(response):
     return 200 <= response.status_code < 300
