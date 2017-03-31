@@ -1256,6 +1256,13 @@ class Alooma(object):
                                    json=data)
 
 
+    def get_scheduled_queries(self):
+        """ Return Consolidation Data """
+        scheduled_query_url = self.rest_url + 'consolidation'
+        return self.__send_request(requests.get, 
+                                   scheduled_query_url)
+
+
 def response_is_ok(response):
     return 200 <= response.status_code < 300
 
