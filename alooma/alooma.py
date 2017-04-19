@@ -763,8 +763,10 @@ class Alooma(object):
         return res
 
     # TODO standardize the responses (handling of error code etc)
-    def get_tables(self):
+    def get_tables(self, shallow=True):
         url = self.rest_url + 'tables'
+        if shallow:
+            url += '?shallow=true'
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
 
