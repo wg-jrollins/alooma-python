@@ -762,6 +762,11 @@ class Alooma(object):
 
         return res
 
+    def get_table_names(self):
+        url = self.rest_url + 'tables?shallow=true'
+        res = self.__send_request(requests.get, url)
+        return parse_response_to_json(res)
+
     # TODO standardize the responses (handling of error code etc)
     def get_tables(self, shallow=False):
         """
@@ -770,11 +775,6 @@ class Alooma(object):
         url = self.rest_url + 'tables'
         if shallow:
             return get_table_names();
-        res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)
-
-    def get_table_names(self):
-        url = self.rest_url + 'tables?shallow=true'
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
 
