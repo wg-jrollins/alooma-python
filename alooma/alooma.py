@@ -70,10 +70,9 @@ class FailedToCreateInputException(Exception):
 
 
 class AloomaAPI(object):
-    def __init__(self, username=None, password=None, account_name=None, 
+    def __init__(self, username=None, password=None, account_name='',
                  base_url=BASE_URL):
-        self.base_url = base_url + (account_name if account_name else '')
-        self.rest_url = self.base_url + '/rest/'
+        self.rest_url = '%s%s/rest/' % (base_url, account_name)
 
         self.username = username
         self.password = password
@@ -82,9 +81,7 @@ class AloomaAPI(object):
             'timeout': DEFAULT_TIMEOUT,
             'cookies': self.cookie
         }
-
-        # Make a dummy request just to ensure we can login, if necessary
-        self.get_mapping_mode()
+        self.account_name = self.__get_account_name()
 
     def __send_request(self, func, url, is_recheck=False, **kwargs):
         params = self.requests_params.copy()
@@ -117,7 +114,12 @@ class AloomaAPI(object):
             self.requests_params['cookies'] = self.cookie
         else:
             raise Exception('Failed to login to {} with username: '
-                            '{}'.format(self.base_url, self.username))
+                            '{}'.format(self.account_name, self.username))
+
+    def __get_account_name(self):
+        url = self.rest_url + 'repository'
+        res = self.__send_request(requests.get, url)
+        return json.loads(res.content).get('config_clientName')
 
     def get_config(self):
         """
@@ -326,7 +328,7 @@ class AloomaAPI(object):
             return transform_node['id']
 
         raise Exception('Could not locate transform id for %s' %
-                        self.base_url)
+                        self.account_name)
 
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
@@ -1217,16 +1219,15 @@ class AloomaAPI(object):
 
 
 class Alooma(AloomaAPI):
-    def __init__(self, hostname=None, username=None, password=None, port=None,
-                 server_prefix=None, account_name=None, base_url=BASE_URL,
-                 **kwargs):
+    def __init__(self, hostname, username, password, port=8443,
+                 server_prefix=''):
         warnings.warn('%s class is deprecated, passing relevant arguments '
                       'to %s class' % (self.__class__.__name__,
                                        self.__class__.__bases__[0].__name__),
                       DeprecationWarning, stacklevel=2)
+        base_url = 'https://%s:%d%s' % (hostname, port, server_prefix)
         super(Alooma, self).__init__(username=username,
                                      password=password,
-                                     account_name=account_name,
                                      base_url=base_url)
 
 
