@@ -69,10 +69,6 @@ class FailedToCreateInputException(Exception):
     pass
 
 
-class LoginFailure(Exception):
-    pass
-
-
 class AloomaAPI(object):
     def __init__(self, username=None, password=None, account_name=None, 
                  base_url=BASE_URL):
