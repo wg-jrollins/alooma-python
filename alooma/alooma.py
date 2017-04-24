@@ -2,6 +2,7 @@ import json
 import time
 import re
 import requests
+import warnings
 from six.moves import urllib
 
 MAPPING_MODES = ['AUTO_MAP', 'STRICT', 'FLEXIBLE']
@@ -61,18 +62,42 @@ DEFAULT_TIMEOUT = 60
 
 MAPPING_TIMEOUT = 300
 
+BASE_URL = 'https://app.alooma.com/'
+
+
 class FailedToCreateInputException(Exception):
     pass
 
 
-class Alooma(object):
-    def __init__(self, hostname, username, password, port=8443,
-                 server_prefix=''):
+class LoginFailure(Exception):
+    pass
 
-        self.hostname = hostname
-        self.rest_url = 'https://%s:%d%s/rest/' % (hostname,
-                                                   port,
-                                                   server_prefix)
+
+class Alooma(object):
+    def __init__(self, hostname=None, username=None, password=None, port=None,
+                 server_prefix=None, client_name=None, base_url=BASE_URL,
+                 **kwargs):
+        deprecated_args = {'hostname': hostname, 'port': port,
+                           'server_prefix': server_prefix}
+        for k, v in deprecated_args.iteritems():
+            if v is not None:
+                warnings.warn("'%s' is a deprecated argument - ignoring" % k,
+                              DeprecationWarning, stacklevel=2)
+        if kwargs:
+            warnings.warn("WARNING: The keys '%s' are not exists!" %
+                          ', '.join(kwargs.keys()), UserWarning, stacklevel=2)
+
+        # User and password are required arguments - will be removed after
+        # deprecated arguments will be removed
+        must_args = {'username': username, 'password': password}
+        missing_args = [k for k, v in must_args.iteritems() if v is None]
+        if missing_args:
+            raise LoginFailure('Failed to login into alooma - you must provide '
+                               '%s value' % ' and '.join(missing_args))
+
+        self.base_url = base_url + (client_name if client_name else '')
+        self.rest_url = self.base_url + '/rest/'
+
         self.username = username
         self.password = password
         self.cookie = None
@@ -92,7 +117,7 @@ class Alooma(object):
         if response_is_ok(response):
             return response
 
-        if response.status_code == 401 and not is_recheck:
+        if response.status_code in (401, 404) and not is_recheck:
             self.__login()
 
             return self.__send_request(func, url, True, **kwargs)
@@ -115,7 +140,7 @@ class Alooma(object):
             self.requests_params['cookies'] = self.cookie
         else:
             raise Exception('Failed to login to {} with username: '
-                            '{}'.format(self.hostname, self.username))
+                            '{}'.format(self.base_url, self.username))
 
     def get_config(self):
         """
@@ -324,7 +349,7 @@ class Alooma(object):
             return transform_node['id']
 
         raise Exception('Could not locate transform id for %s' %
-                        self.hostname)
+                        self.base_url)
 
     def remove_input(self, input_id):
         url = "{rest_url}plumbing/nodes/remove/{input_id}".format(
