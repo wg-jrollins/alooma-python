@@ -73,29 +73,10 @@ class LoginFailure(Exception):
     pass
 
 
-class Alooma(object):
-    def __init__(self, hostname=None, username=None, password=None, port=None,
-                 server_prefix=None, client_name=None, base_url=BASE_URL,
-                 **kwargs):
-        deprecated_args = {'hostname': hostname, 'port': port,
-                           'server_prefix': server_prefix}
-        for k, v in deprecated_args.iteritems():
-            if v is not None:
-                warnings.warn("'%s' is a deprecated argument - ignoring" % k,
-                              DeprecationWarning, stacklevel=2)
-        if kwargs:
-            warnings.warn("WARNING: The keys '%s' are not exists!" %
-                          ', '.join(kwargs.keys()), UserWarning, stacklevel=2)
-
-        # User and password are required arguments - will be removed after
-        # deprecated arguments will be removed
-        must_args = {'username': username, 'password': password}
-        missing_args = [k for k, v in must_args.iteritems() if v is None]
-        if missing_args:
-            raise LoginFailure('Failed to login into alooma - you must provide '
-                               '%s value' % ' and '.join(missing_args))
-
-        self.base_url = base_url + (client_name if client_name else '')
+class AloomaAPI(object):
+    def __init__(self, username=None, password=None, account_name=None, 
+                 base_url=BASE_URL):
+        self.base_url = base_url + (account_name if account_name else '')
         self.rest_url = self.base_url + '/rest/'
 
         self.username = username
@@ -117,7 +98,7 @@ class Alooma(object):
         if response_is_ok(response):
             return response
 
-        if response.status_code in (401, 404) and not is_recheck:
+        if response.status_code == 401 and not is_recheck:
             self.__login()
 
             return self.__send_request(func, url, True, **kwargs)
@@ -145,7 +126,7 @@ class Alooma(object):
     def get_config(self):
         """
         Exports the entire system configuration in dict format.
-        This is also used periodically by Alooma for backup purposes,
+        This is also used periodically by AloomaAPI for backup purposes,
         :return: a dict representation of the system configuration
         """
         url_get = self.rest_url + 'config/export'
@@ -441,8 +422,8 @@ class Alooma(object):
         :return: new mapping dict with new argument
         """
 
-        field = Alooma.find_field_name(schema, field_path, True)
-        Alooma.set_mapping_for_field(field, column_name, field_type,
+        field = AloomaAPI.find_field_name(schema, field_path, True)
+        AloomaAPI.set_mapping_for_field(field, column_name, field_type,
                                      non_null, **type_attributes)
 
     @staticmethod
@@ -488,11 +469,11 @@ class Alooma(object):
         if field:
             if not remaining_path:
                 return field
-            return Alooma.find_field_name(field, remaining_path[0])
+            return AloomaAPI.find_field_name(field, remaining_path[0])
         elif add_if_missing:
             parent_field = schema
             for field in fields_list:
-                parent_field = Alooma.add_field(parent_field, field)
+                parent_field = AloomaAPI.add_field(parent_field, field)
             return parent_field
         else:
             # raise this if the field is not found,
@@ -521,8 +502,8 @@ class Alooma(object):
 
     def get_samples_status_codes(self):
         """
-        :return:    a list of status codes each event in Alooma may be tagged
-                    with. As Alooma supports more processing capabilities,
+        :return:    a list of status codes each event in AloomaAPI may be tagged
+                    with. As AloomaAPI supports more processing capabilities,
                     status codes may be added. These status codes are used for
                     sampling events according to the events' type & status.
         """
@@ -1237,6 +1218,20 @@ class Alooma(object):
                "BjltU7g543bUklkYtzwqzYpcynNyrCBSWd85aa/3cVPdiugk7hV4nuUk3m" \
                "VEX/l4GDIsTkLIRzHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM" \
                "/PdJJEHh65986tgprbI0Lz+geqYmASgF deploy@alooma.io"
+
+
+class Alooma(AloomaAPI):
+    def __init__(self, hostname=None, username=None, password=None, port=None,
+                 server_prefix=None, account_name=None, base_url=BASE_URL,
+                 **kwargs):
+        warnings.warn('%s class is deprecated, passing relevant arguments '
+                      'to %s class' % (self.__class__.__name__,
+                                       self.__class__.__bases__[0].__name__),
+                      DeprecationWarning, stacklevel=2)
+        super(Alooma, self).__init__(username=username,
+                                     password=password,
+                                     account_name=account_name,
+                                     base_url=base_url)
 
 
 def response_is_ok(response):
