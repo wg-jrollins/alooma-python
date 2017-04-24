@@ -81,6 +81,7 @@ class AloomaAPI(object):
             'timeout': DEFAULT_TIMEOUT,
             'cookies': self.cookie
         }
+        self.account_name = None
         self.account_name = self.__get_account_name()
 
     def __send_request(self, func, url, is_recheck=False, **kwargs):
