@@ -420,7 +420,7 @@ class AloomaAPI(object):
 
         field = AloomaAPI.find_field_name(schema, field_path, True)
         AloomaAPI.set_mapping_for_field(field, column_name, field_type,
-                                     non_null, **type_attributes)
+                                        non_null, **type_attributes)
 
     @staticmethod
     def set_mapping_for_field(field, column_name,
