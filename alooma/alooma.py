@@ -122,7 +122,7 @@ class AloomaAPI(object):
     def get_config(self):
         """
         Exports the entire system configuration in dict format.
-        This is also used periodically by AloomaAPI for backup purposes,
+        This is also used periodically by Alooma for backup purposes,
         :return: a dict representation of the system configuration
         """
         url_get = self.rest_url + 'config/export'
@@ -498,8 +498,8 @@ class AloomaAPI(object):
 
     def get_samples_status_codes(self):
         """
-        :return:    a list of status codes each event in AloomaAPI may be tagged
-                    with. As AloomaAPI supports more processing capabilities,
+        :return:    a list of status codes each event in Alooma may be tagged
+                    with. As Alooma supports more processing capabilities,
                     status codes may be added. These status codes are used for
                     sampling events according to the events' type & status.
         """
