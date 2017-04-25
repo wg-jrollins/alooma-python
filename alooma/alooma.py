@@ -69,7 +69,7 @@ class FailedToCreateInputException(Exception):
     pass
 
 
-class AloomaAPI(object):
+class Client(object):
     def __init__(self, username=None, password=None, account_name='',
                  base_url=BASE_URL):
         self.rest_url = '%s%s/rest/' % (base_url, account_name)
@@ -421,9 +421,9 @@ class AloomaAPI(object):
         :return: new mapping dict with new argument
         """
 
-        field = AloomaAPI.find_field_name(schema, field_path, True)
-        AloomaAPI.set_mapping_for_field(field, column_name, field_type,
-                                        non_null, **type_attributes)
+        field = Client.find_field_name(schema, field_path, True)
+        Client.set_mapping_for_field(field, column_name, field_type,
+                                     non_null, **type_attributes)
 
     @staticmethod
     def set_mapping_for_field(field, column_name,
@@ -468,11 +468,11 @@ class AloomaAPI(object):
         if field:
             if not remaining_path:
                 return field
-            return AloomaAPI.find_field_name(field, remaining_path[0])
+            return Client.find_field_name(field, remaining_path[0])
         elif add_if_missing:
             parent_field = schema
             for field in fields_list:
-                parent_field = AloomaAPI.add_field(parent_field, field)
+                parent_field = Client.add_field(parent_field, field)
             return parent_field
         else:
             # raise this if the field is not found,
@@ -1219,7 +1219,7 @@ class AloomaAPI(object):
                "/PdJJEHh65986tgprbI0Lz+geqYmASgF deploy@alooma.io"
 
 
-class Alooma(AloomaAPI):
+class Alooma(Client):
     def __init__(self, hostname, username, password, port=8443,
                  server_prefix=''):
         warnings.warn('%s class is deprecated, passing relevant arguments '
