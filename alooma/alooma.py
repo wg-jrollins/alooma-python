@@ -81,7 +81,6 @@ class Client(object):
             'timeout': DEFAULT_TIMEOUT,
             'cookies': self.cookie
         }
-        self.account_name = None
         self.account_name = self.__get_account_name()
 
     def __send_request(self, func, url, is_recheck=False, **kwargs):
@@ -114,8 +113,8 @@ class Client(object):
             self.cookie = response.cookies
             self.requests_params['cookies'] = self.cookie
         else:
-            raise Exception('Failed to login to {} with username: '
-                            '{}'.format(self.account_name, self.username))
+            raise Exception('Failed logging in with user: {}'
+                            .format(self.username))
 
     def __get_account_name(self):
         url = self.rest_url + 'repository'
