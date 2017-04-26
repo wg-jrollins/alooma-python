@@ -120,7 +120,7 @@ class Client(object):
     def __get_account_name(self):
         url = self.rest_url + 'repository'
         res = self.__send_request(requests.get, url)
-        return json.loads(res.content).get('config_clientName')
+        return res.json().get('config_clientName')
 
     def get_config(self):
         """
