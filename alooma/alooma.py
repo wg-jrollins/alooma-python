@@ -1217,10 +1217,12 @@ class Alooma(object):
                "VEX/l4GDIsTkLIRzHUHDwt5aWGzhpwdle9D/fxshCbp5nkcg1arSdTveyM" \
                "/PdJJEHh65986tgprbI0Lz+geqYmASgF deploy@alooma.io"
 
-    def get_specific_deployment_name(self):
-        """ Return Alooma Specific Deployment Name """
-        cfg = self.get_config()
-        return cfg['zkConfigurations']['deploymentName']
+    def get_deployment_info(self):
+        """ Return dict with Deployment Info """
+        url = self.rest_url + "deployInfo"
+        res = self.__send_request(requests.get, url)
+
+        return res.json()
 
     ## CONSOLIDATIONS ##
     def schedule_query(self, event_type, query, frequency=None, run_at=None):
@@ -1234,12 +1236,12 @@ class Alooma(object):
         NOTE: you must select either frequency or run_at
         """
         scheduled_query_url = self.rest_url + 'consolidation'
-        specific_deployment_name = self.get_specific_deployment_name()
+        deployment_name = self.get_deployment_info()['deploymentName']
         
         # Prep Data for Consolidation Post
         data = {
             "query_type": "custom",
-            "deployment_name": specific_deployment_name,
+            "deployment_name": deployment_name,
             "custom_query": query,
             "event_type": event_type
         }
