@@ -1238,13 +1238,11 @@ class Alooma(object):
         if frequency is None and run_at is None:
             raise Exception('Must specify either run_at or frequency')
 
-        scheduled_query_url = self.rest_url + 'consolidation'
-        deployment_name = self.get_deployment_info()['deploymentName']
+        scheduled_query_url = self.rest_url + 'custom-consolidation'
         
         # Prep Data for Consolidation Post
         data = {
             "query_type": "custom",
-            "deployment_name": deployment_name,
             "custom_query": query,
             "event_type": event_type,
             "frequency": frequency,
