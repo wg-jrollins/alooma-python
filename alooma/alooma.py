@@ -1235,6 +1235,9 @@ class Alooma(object):
 
         NOTE: you must select either frequency or run_at
         """
+        if frequency is None and run_at is None:
+            raise Exception('Must specify either run_at or frequency')
+
         scheduled_query_url = self.rest_url + 'consolidation'
         deployment_name = self.get_deployment_info()['deploymentName']
         
@@ -1243,15 +1246,10 @@ class Alooma(object):
             "query_type": "custom",
             "deployment_name": deployment_name,
             "custom_query": query,
-            "event_type": event_type
+            "event_type": event_type,
+            "frequency": frequency,
+            "run_at": run_at
         }
-
-        if frequency is not None:
-            data['frequency'] = frequency
-        elif runs_at is not None:
-            data['run_at'] = run_at
-        else:
-            raise Exception('Must specify either run_at or frequency')
         
         return self.__send_request(requests.post, 
                                    scheduled_query_url, 
