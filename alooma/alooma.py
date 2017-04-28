@@ -1242,7 +1242,6 @@ class Alooma(object):
         
         # Prep Data for Consolidation Post
         data = {
-            "query_type": "custom",
             "custom_query": query,
             "event_type": event_type,
             "frequency": frequency,
