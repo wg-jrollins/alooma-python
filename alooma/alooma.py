@@ -1157,19 +1157,8 @@ class Client(object):
         Returns the number of events currently held in the Restream Queue
         :return: an int representing the number of events in the queue
         """
-        warnings.warn("Call to deprecated function or method "
-                      "get_restream_queue_size (use get_events_to_restream).",
-                      DeprecationWarning, stacklevel=2)
-        return self.get_events_to_restream()
-
-    def get_events_to_restream(self):
-        """
-        Returns the number of events currently held in the Restream Queue
-        :return: an int representing the number of events in the queue
-        """
-        url = self.rest_url + 'plumbing/restream/eventsToRestream'
-        event_count = self.__send_request(requests.get, url)
-        return event_count
+        restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
+        return restream_node["stats"]["availbleForRestream"]
 
     def get_scheduled_queries(self):
         """
