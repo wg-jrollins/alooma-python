@@ -780,19 +780,26 @@ class Client(object):
 
         return res
 
-    def get_table_names(self):
-        url = self.rest_url + 'tables?shallow=true'
+    def get_table_names(self, schema=None):
+        """
+        :param schema - return tables from a specific schema, else use default
+        """
+        schema_string = '/%s' %  schema if schema is not None else ''
+        url = self.rest_url + 'tables%s?shallow=true' % schema_string
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
 
     # TODO standardize the responses (handling of error code etc)
-    def get_tables(self, shallow=False):
+    def get_tables(self, shallow=False, schema=None):
         """
         :param shallow - only return schema and table names
+        :param schema - return tables from a specific schema, else use default
         """        
-        url = self.rest_url + 'tables'
         if shallow:
-            return self.get_table_names();
+            return self.get_table_names(schema);
+
+        schema_string = '/%s' %  schema if schema is not None else ''            
+        url = self.rest_url + 'tables%s' % schema_string
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
 
