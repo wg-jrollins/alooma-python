@@ -1269,6 +1269,32 @@ class Client(object):
                                    scheduled_query_url, 
                                    json=data)
 
+    def publish_notification(self, level, description, data):
+        """ Publish a Notification to Alooma 
+            
+            :param level: ERROR, INFO, or TODO
+            :param description: Text sent as description
+            :param data: Data sent to explain description
+        """
+
+        url = self.rest_url + "notifications/custom"
+
+        notification = {
+            'level': level,
+            'description': description,
+            'data': data
+        }
+        
+        res = requests.post(url, json=notification, **self.requests_params)
+
+        if not res:
+            print res.content
+            raise Exception('Got status code %s for url: "%s" '
+                                          'with content: "%s"' %
+                                          (res.status_code, url, res.content))
+        return res
+    
+
 class Alooma(Client):
     def __init__(self, hostname, username, password, port=8443,
                  server_prefix=''):
