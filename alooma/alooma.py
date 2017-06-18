@@ -1272,7 +1272,7 @@ class Client(object):
     def publish_notification(self, level, description, data):
         """ Publish a Notification to Alooma 
             
-            :param level: ERROR, INFO, or TODO
+            :param level: ERROR, INFO
             :param description: Text sent as description
             :param data: Data sent to explain description
         """
@@ -1288,7 +1288,6 @@ class Client(object):
         res = requests.post(url, json=notification, **self.requests_params)
 
         if not res:
-            print res.content
             raise Exception('Got status code %s for url: "%s" '
                                           'with content: "%s"' %
                                           (res.status_code, url, res.content))
