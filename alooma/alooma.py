@@ -318,7 +318,6 @@ class Client(object):
 
     def edit_input(self, input_post_data):
         input_id = input_post_data.get('id')
-        print ('Attempting to edit input with id %s' % input_id)
         if not input_id:
             raise Exception('Could not edit input without id')
 
