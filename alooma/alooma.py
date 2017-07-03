@@ -322,7 +322,7 @@ class Client(object):
         if not input_id:
             raise Exception('Could not edit input without id')
 
-        url = self.rest_url + ('plumbing/inputs/%s' % input_id)
+        url = self.rest_url + ('inputs/%s' % input_id)
         res = self.__send_request(requests.put, url, json=input_post_data)
         return res
 
