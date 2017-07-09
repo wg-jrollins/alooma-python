@@ -1,3 +1,4 @@
+import os
 import json
 import time
 import re
@@ -72,7 +73,7 @@ class FailedToCreateInputException(Exception):
 class Client(object):
     def __init__(self, username=None, password=None, account_name='',
                  base_url=BASE_URL):
-        self.rest_url = '%s%s/rest/' % (base_url, account_name)
+        self.rest_url = '%s%s' % (base_url, os.path.join(account_name, 'rest/'))
 
         self.username = username
         self.password = password
