@@ -72,7 +72,8 @@ class FailedToCreateInputException(Exception):
 class Client(object):
     def __init__(self, username=None, password=None, account_name='',
                  base_url=BASE_URL):
-        self.rest_url = '%s%s/rest/' % (base_url, account_name)
+        rest_path = '%s/rest/' % account_name if account_name != '' else 'rest/'
+        self.rest_url = base_url + rest_path
 
         self.username = username
         self.password = password
