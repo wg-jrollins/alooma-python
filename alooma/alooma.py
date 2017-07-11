@@ -519,7 +519,7 @@ class Client(object):
         :return:            result of the REST request
         """
         url = self.rest_url + 'inputSleepTime/%s' % input_id
-        res = requests.put(url, str(sleep_time), **self.requests_params)
+        res = requests.put(url, json=sleep_time, **self.requests_params)
         return res
 
     def get_samples_status_codes(self):
