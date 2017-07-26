@@ -97,13 +97,14 @@ class Client(object):
 
             return self.__send_request(func, url, True, **kwargs)
 
-        content = response.content.decode()
         raise Exception("The rest call to {url} failed\n"
-                        "failure reason: {failure_reason}{failure_content}"
+                        "failure reason: {failure_reason}"
+                        "{failure_content}"
                         .format(url=response.url,
                                 failure_reason=response.reason,
                                 failure_content="\nfailure content: " +
-                                                content if content else ""))
+                                                response.content.decode()
+                                if response.content.decode() else ""))
 
     def __login(self):
         url = self.rest_url + 'login'
@@ -797,7 +798,7 @@ class Client(object):
         """
         :param schema - return tables from a specific schema, else use default
         """
-        schema_string = '/%s' %  schema if schema is not None else ''
+        schema_string = '/%s' % schema if schema is not None else ''
         url = self.rest_url + 'tables%s?shallow=true' % schema_string
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
@@ -937,7 +938,7 @@ class Client(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        configuration = {
+        configuration =  {
             'hostname': hostname,
             'port': port,
             'schemaName': schema_name,
@@ -1254,7 +1255,7 @@ class Client(object):
 
         return res.json()
 
-    # # CONSOLIDATIONS # #
+    ## CONSOLIDATIONS ##
     def schedule_query(self, event_type, query, frequency=None, run_at=None):
         """ Return Requests Response to Create Query
 
