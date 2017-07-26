@@ -810,9 +810,9 @@ class Client(object):
         :param schema - return tables from a specific schema, else use default
         """        
         if shallow:
-            return self.get_table_names(schema);
+            return self.get_table_names(schema)
 
-        schema_string = '/%s' %  schema if schema is not None else ''            
+        schema_string = '/%s' % schema if schema is not None else ''
         url = self.rest_url + 'tables%s' % schema_string
         res = self.__send_request(requests.get, url)
         return parse_response_to_json(res)
@@ -938,7 +938,7 @@ class Client(object):
                              on the SSH server
         :return: :type dict. Response's content
         """
-        configuration =  {
+        configuration = {
             'hostname': hostname,
             'port': port,
             'schemaName': schema_name,
@@ -1255,7 +1255,7 @@ class Client(object):
 
         return res.json()
 
-    ## CONSOLIDATIONS ##
+    # # CONSOLIDATIONS # #
     def schedule_query(self, event_type, query, frequency=None, run_at=None):
         """ Return Requests Response to Create Query
 
@@ -1282,6 +1282,7 @@ class Client(object):
         return self.__send_request(requests.post, 
                                    scheduled_query_url, 
                                    json=data)
+
 
 class Alooma(Client):
     def __init__(self, hostname, username, password, port=8443,
