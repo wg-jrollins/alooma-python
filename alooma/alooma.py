@@ -97,14 +97,16 @@ class Client(object):
 
             return self.__send_request(func, url, True, **kwargs)
 
+        resp_url = response.url
+        reason = response.reason
+        content = "\nfailure content: " + response.content if response.content \
+            else ""
+
         raise Exception("The rest call to {url} failed\n"
-                        "failure reason: {failure_reason}"
-                        "{failure_content}"
-                        .format(url=response.url,
-                                failure_reason=response.reason,
-                                failure_content="\nfailure content: " +
-                                                response.content if
-                                response.content else ""))
+                        "failure reason: {failure_reason}{failure_content}"
+                        .format(url=resp_url,
+                                failure_reason=reason,
+                                failure_content=content))
 
     def __login(self):
         url = self.rest_url + 'login'
