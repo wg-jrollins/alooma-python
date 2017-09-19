@@ -846,7 +846,7 @@ class Client(object):
     def get_output_node(self):
         url = self.rest_url + 'plumbing/outputs'
         res = self.__send_request(requests.get, url)
-        return parse_response_to_json(res)
+        return parse_response_to_json(res)[0]
 
     def set_output(self, output_config, output_name=None):
         """
