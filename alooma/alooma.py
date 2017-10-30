@@ -62,7 +62,7 @@ DEFAULT_TIMEOUT = 60
 
 MAPPING_TIMEOUT = 300
 
-BASE_URL = 'https://app.alooma.com/'
+BASE_URL = 'https://app.alooma.com'
 
 
 class FailedToCreateInputException(Exception):
@@ -70,9 +70,18 @@ class FailedToCreateInputException(Exception):
 
 
 class Client(object):
-    def __init__(self, username=None, password=None, account_name='',
-                 base_url=BASE_URL):
-        rest_path = '%s/rest/' % account_name if account_name != '' else '/rest/'
+    def __init__(self, username=None, password=None, account_name=None,
+                 base_url=None):
+
+        if base_url is None:
+            base_url = BASE_URL
+        # for backwards compatibility (alooma_dev.py)
+        base_url = base_url.rstrip('/')
+
+        rest_path = '/rest/'
+        if account_name is not None:
+            rest_path = '/%s/rest/' % account_name
+
         self.rest_url = base_url + rest_path
 
         self.username = username
@@ -364,7 +373,7 @@ class Client(object):
         self.set_transform(transform=transform)
 
     def set_mapping(self, mapping, event_type, timeout=MAPPING_TIMEOUT):
-      
+
         event_type = urllib.parse.quote(event_type, safe='')
         url = self.rest_url + 'event-types/{event_type}/mapping'.format(
             event_type=event_type)
@@ -808,7 +817,7 @@ class Client(object):
         """
         :param shallow - only return schema and table names
         :param schema - return tables from a specific schema, else use default
-        """        
+        """
         if shallow:
             return self.get_table_names(schema)
 
@@ -1272,7 +1281,7 @@ class Client(object):
             raise Exception('Must specify either run_at or frequency')
 
         scheduled_query_url = self.rest_url + 'custom-consolidation'
-        
+
         # Prep Data for Consolidation Post
         data = {
             "custom_query": query,
@@ -1280,9 +1289,9 @@ class Client(object):
             "frequency": frequency,
             "run_at": run_at
         }
-        
-        return self.__send_request(requests.post, 
-                                   scheduled_query_url, 
+
+        return self.__send_request(requests.post,
+                                   scheduled_query_url,
                                    json=data)
 
 
