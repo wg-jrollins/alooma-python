@@ -75,7 +75,8 @@ class Client(object):
 
         if base_url is None:
             base_url = BASE_URL
-        base_url.rstrip('/')  # for backwards compatibility (alooma_dev.py)
+        # for backwards compatibility (alooma_dev.py)
+        base_url = base_url.rstrip('/')
 
         rest_path = '/rest/'
         if account_name is not None:
