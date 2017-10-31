@@ -1192,24 +1192,6 @@ class Client(object):
         restream_node = self._get_node_by("type", RESTREAM_QUEUE_TYPE_NAME)
         return restream_node["stats"]["availbleForRestream"]
 
-    def get_scheduled_queries(self):
-        """
-        Returns all scheduled queries
-        :return: a dict representing all scheduled queries
-        """
-        url = self.rest_url + 'consolidation'
-        return requests.get(url, **self.requests_params).json()
-
-    def get_scheduled_queries_in_error_state(self):
-        """
-        Returns all scheduled queries that have not successfully ran on
-        the last attempt
-        :return: a dict representing all failed scheduled queries
-        """
-        all_queries = self.get_scheduled_queries()
-        return {k: all_queries[k] for k in all_queries.keys()
-                if all_queries[k]['status'] not in ['active', 'done']}
-
     def _get_node_by(self, field, value):
         """
         Get the node by (id, name, type, etc...)
@@ -1266,11 +1248,38 @@ class Client(object):
 
         return res.json()
 
-    ## CONSOLIDATIONS ##
+    # SCHEDULED QUERIES #
+    def get_scheduled_queries(self):
+        """
+        Returns all scheduled queries
+        :return: a dict representing all scheduled queries
+        """
+        url = self.rest_url + 'consolidation'
+        return requests.get(url, **self.requests_params).json()
+
+    def remove_scheduled_query(self, query_id):
+        url = self.rest_url + 'consolidation/' + query_id
+        res = self.__send_request(requests.delete, url)
+        if not res.ok:
+            raise Exception('Failed deleting query id=%s '
+                            'status_code=%d response=%s' %
+                            (query_id, res.status_code, res.content))
+
+    def get_scheduled_queries_in_error_state(self):
+        """
+        Returns all scheduled queries that have not successfully ran on
+        the last attempt
+        :return: a dict representing all failed scheduled queries
+        """
+        all_queries = self.get_scheduled_queries()
+        return {k: all_queries[k] for k in all_queries.keys()
+                if all_queries[k]['status'] not in ['active', 'done']}
+
     def schedule_query(self, event_type, query, frequency=None, run_at=None):
         """ Return Requests Response to Create Query
 
-            :param event_type: Alooma Event Type Related to Query (or not)
+            :param event_type: Alooma Event Type Related to Query (exiting event
+                               type is required, even if just a placeholder)
             :param query: Desired Query to Schedule
             :param frequency: Desired hours between query runs
             :param run_at: Cron like string to run query on
@@ -1279,6 +1288,9 @@ class Client(object):
         """
         if frequency is None and run_at is None:
             raise Exception('Must specify either run_at or frequency')
+
+        if event_type is None:
+            raise Exception('Event type must be provided')
 
         scheduled_query_url = self.rest_url + 'custom-consolidation'
 
