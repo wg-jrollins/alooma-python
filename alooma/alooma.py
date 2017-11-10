@@ -841,6 +841,11 @@ class Client(object):
         :return: A list of all the inputs in the system, along
         with metadata and configurations
         """
+        url = self.rest_url + 'inputs'
+        
+        response = self.__send_request(requests.get, url=url)
+        nodes = response.json().values()
+        
         nodes = [node for node in self.get_plumbing()['nodes']
                  if node['category'] == 'INPUT']
         if input_type:
@@ -850,6 +855,7 @@ class Client(object):
             nodes = [node for node in nodes if regex.match(node['name'])]
         if input_id:
             nodes = [node for node in nodes if node['id'] == input_id]
+        
         return nodes
 
     def get_output_node(self):
