@@ -601,6 +601,10 @@ class Client(object):
         res = self.__send_request(requests.post, url, json=data)
         return res
 
+    def delete_transform(self, module_name):
+        url = self.rest_url + 'transform/functions/{}'.format(module_name)
+        return self.__send_request(requests.delete, url)
+
     def test_transform(self, sample, temp_transform=None):
         """
         :param sample:  a json string or a dict, representing a sample event
