@@ -601,6 +601,10 @@ class Client(object):
         res = self.__send_request(requests.post, url, json=data)
         return res
 
+    def delete_transform(self, module_name):
+        url = self.rest_url + 'transform/functions/{}'.format(module_name)
+        return self.__send_request(requests.delete, url)
+
     def test_transform(self, sample, temp_transform=None):
         """
         :param sample:  a json string or a dict, representing a sample event
@@ -1144,6 +1148,35 @@ class Client(object):
     def set_settings_email_notifications(self, email_settings_json):
         url = self.rest_url + "settings/email-notifications"
         self.__send_request(requests.post, url, json=email_settings_json)
+
+    def set_s3_retention(self, aws_bucket_name, aws_access_key, aws_secret_key,
+                         file_prefix=None, save_metadata=True, gzip=True,
+                         server_side_encryption=True):
+        """
+        Configure s3 retention which stores the raw events received by Alooma to
+        a custom S3 bucket. Retention files are stored in folders by input name
+        and timestamp.
+
+        :param aws_bucket_name: where retention files will be created
+        :param aws_access_key: with permissions to list and write files
+        :param aws_secret_key: to go with the aws_access_key
+        :param file_prefix: (optional) files will upload to s3://bucket/prefix/
+        :param save_metadata: save raw events with their metadata (default=True)
+        :param gzip: create gzipped files (default=True)
+        :param server_side_encryption: use S3 encryption (default=True)
+        """
+        s3_retention_config = {
+            'awsBucketName': aws_bucket_name,
+            'awsAccessKeyId': aws_access_key,
+            'awsSecretAccessKey': aws_secret_key,
+            'saveMetadata': save_metadata,
+            'gzip': gzip,
+            'serverSideEncryption': server_side_encryption
+        }
+        if file_prefix is not None:
+            s3_retention_config['filePrefix'] = file_prefix
+        url = self.rest_url + 'settings/s3-retention'
+        self.__send_request(requests.post, url, json=s3_retention_config)
 
     def delete_s3_retention(self):
         url = self.rest_url + "settings/s3-retention"
