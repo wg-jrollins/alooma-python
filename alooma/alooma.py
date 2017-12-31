@@ -601,6 +601,21 @@ class Client(object):
         res = self.__send_request(requests.post, url, json=data)
         return res
 
+    def set_transform_with_modules(self, modules):
+        """
+        Set multiple transformation files.
+        modules has the following structure:
+            [{
+            'language': 'PYTHON',
+            'code': <code>,
+            'functionName': <module_name>
+            },
+            {}...]
+        """
+        url = self.rest_url + 'transform/v2/functions/'
+        res = self.__send_request(requests.post, url, json=modules)
+        return res
+
     def delete_transform(self, module_name):
         url = self.rest_url + 'transform/functions/{}'.format(module_name)
         return self.__send_request(requests.delete, url)
@@ -628,6 +643,40 @@ class Client(object):
             'language': 'PYTHON',
             'functionName': 'main',
             'code': temp_transform,
+            'sample': sample
+        }
+        res = requests.post(url, json=data, **self.requests_params)
+        return json.loads(res.content)
+
+    def test_transform_with_modules(self, sample, temp_modules):
+        """
+        :param sample:  a json string or a dict, representing a sample event
+        :param temp_modules: optional object containing transform code. if
+                        not provided, the currently deployed transform will be
+                        used. It is possible to override / add any number of
+                        modules. The modules that are not provided will be
+                        taken from the existing deployed code.
+                        Object structure:
+                        [{
+                            'language': 'PYTHON',
+                            'code': <code>,
+                            'functionName': <module_name>
+                        },
+                        {}...]
+
+        :return:        the results of a test run of the temp_transform on the
+                        given sample. This returns a dictionary with the
+                        following keys:
+                            'output' - strings printed by the transform
+                                       function
+                            'result' - the resulting event
+                            'runtime' - millis it took the function to run
+        """
+        url = self.rest_url + 'transform/v2/functions/run'
+        if not isinstance(sample, dict):
+            sample = json.loads(sample)
+        data = {
+            'modules': temp_modules,
             'sample': sample
         }
         res = requests.post(url, json=data, **self.requests_params)
