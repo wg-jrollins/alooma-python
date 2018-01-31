@@ -656,7 +656,18 @@ class Client(object):
                         results.append(s)
         return results
 
-    def get_metrics_by_names(self, metric_names, minutes):
+    def get_metrics_by_names(self, metric_names, minutes, resolution=1):
+        """
+        Fetches the historical metrics for the requested metric(s)
+        :param metric_names: either a string or list of metric names
+                             refer to METRICS_LIST for a list of metrics
+        :param minutes: how many minutes to look back
+        :param resolution: the resolution in minutes of each datapoint
+        :return:    a list of dict(s) with the datapoints datapoints.
+                    Each dictionary contains the following keys:
+                        'target': <metric name>
+                        'datapoints': List of [<value>, <timestamp>] pairs
+        """
         if type(metric_names) != list and type(metric_names) == str:
             metric_names = [metric_names]
         elif type(metric_names) != str and type(metric_names) != list:
@@ -672,7 +683,7 @@ class Client(object):
         metrics_string = ",".join(metric_names)
         url = self.rest_url + 'metrics?metrics=%s&from=-%dmin' \
                               '&resolution=%dmin' \
-                              '' % (metrics_string, minutes, minutes)
+                              '' % (metrics_string, minutes, resolution)
         res = self.__send_request(requests.get, url)
 
         response = parse_response_to_json(res)
