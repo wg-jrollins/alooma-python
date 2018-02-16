@@ -128,6 +128,14 @@ class Client(object):
         res = self.__send_request(requests.get, url)
         return res.json().get('config_clientName')
 
+    def add_user(self, email):
+        post_data = {
+            'email': email
+        }
+        res = self.__send_request(requests.post, self.rest_url + 'user', json=post_data)
+        return res
+
+
     def get_config(self):
         """
         Exports the entire system configuration in dict format.
